@@ -1,0 +1,3382 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>PAC-MAN 3D Multiplayer — WoraWork Diorama Edition</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="alternate icon" href="/favicon.ico" />
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    :root {
+      --bg-card: rgba(255, 252, 245, 0.94);
+      --border-main: #18181b;
+      --text-main: #18181b;
+      --text-muted: #52525b;
+      --accent-yellow: #facc15;
+      --accent-orange: #f97316;
+      --accent-blue: #3b82f6;
+      --accent-green: #22c55e;
+      --accent-red: #ef4444;
+      --shadow-brutal: 4px 4px 0px #18181b;
+    }
+
+    body.theme-neon {
+      --bg-card: rgba(15, 23, 42, 0.92);
+      --border-main: #38bdf8;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --shadow-brutal: 4px 4px 0px #0284c7;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    input {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(180deg, #93d5f6 0%, #bae6fd 60%, #fef3c7 100%);
+      color: var(--text-main);
+    }
+
+    body.theme-neon {
+      background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+    }
+
+    #canvas-container {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      background: transparent;
+    }
+
+    /* 3D Character Floating Nameplates */
+    #nameplates-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 6;
+      overflow: hidden;
+    }
+
+    .char-nameplate {
+      position: absolute;
+      transform: translate(-50%, -100%);
+      background: rgba(24, 24, 27, 0.88);
+      color: #fff;
+      border: 2px solid #fff;
+      padding: 2px 7px;
+      font-size: 11px;
+      font-weight: 800;
+      white-space: nowrap;
+      box-shadow: 2px 2px 0px rgba(0,0,0,0.65);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: opacity 0.15s ease;
+    }
+
+    .char-nameplate .role-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    /* HUD Overlay */
+    #hud {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 16px 20px;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .stats-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      pointer-events: auto;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 2.5px solid var(--border-main);
+      box-shadow: var(--shadow-brutal);
+      padding: 7px 13px;
+      min-width: 102px;
+      backdrop-filter: blur(8px);
+    }
+
+    .stat-label {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+
+    .stat-value {
+      font-size: 20px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+
+    .lives-container {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 3px;
+    }
+
+    .life-icon {
+      width: 17px;
+      height: 17px;
+      background: #facc15;
+      border: 2px solid #18181b;
+      border-radius: 50%;
+      clip-path: polygon(100% 0%, 100% 25%, 50% 50%, 100% 75%, 100% 100%, 0% 100%, 0% 0%);
+    }
+
+    .controls-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      pointer-events: auto;
+    }
+
+    .hud-btn {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border: 2.5px solid var(--border-main);
+      box-shadow: var(--shadow-brutal);
+      padding: 7px 11px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s ease;
+    }
+
+    .hud-btn:hover {
+      transform: translate(-1px, -1px);
+      background: #fef08a;
+      color: #18181b;
+    }
+
+    .hud-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0px var(--border-main);
+    }
+
+    /* Left Side Status Bars & Room Roster */
+    .status-bars {
+      position: absolute;
+      top: 82px;
+      left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .bar-pill {
+      background: var(--bg-card);
+      border: 2px solid var(--border-main);
+      box-shadow: 3px 3px 0px var(--border-main);
+      padding: 6px 10px;
+      width: 215px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .bar-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .bar-track {
+      width: 100%;
+      height: 8px;
+      background: rgba(0, 0, 0, 0.15);
+      border: 1.5px solid var(--border-main);
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: 100%;
+      transition: width 0.08s linear;
+    }
+
+    #power-pill-box {
+      display: none;
+    }
+
+    .room-hud-panel {
+      background: var(--bg-card);
+      border: 2px solid var(--border-main);
+      box-shadow: 3px 3px 0px var(--border-main);
+      padding: 8px 10px;
+      width: 215px;
+      font-size: 11px;
+    }
+
+    .room-hud-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 900;
+      text-transform: uppercase;
+      font-size: 10px;
+      border-bottom: 1.5px solid var(--border-main);
+      padding-bottom: 4px;
+      margin-bottom: 5px;
+    }
+
+    .room-player-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 2px 0;
+      font-weight: 700;
+      font-size: 11px;
+    }
+
+    .badge-online {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #22c55e;
+      margin-right: 4px;
+    }
+
+    /* Bottom Bar */
+    .bottom-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      width: 100%;
+    }
+
+    .minimap-card {
+      background: var(--bg-card);
+      border: 2.5px solid var(--border-main);
+      box-shadow: var(--shadow-brutal);
+      padding: 8px;
+      pointer-events: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .minimap-title {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    #minimap {
+      display: block;
+      width: 136px;
+      height: 136px;
+      border: 1.5px solid var(--border-main);
+      background: #18181b;
+    }
+
+    .dpad-wrapper {
+      display: flex;
+      align-items: flex-end;
+      gap: 14px;
+      pointer-events: auto;
+    }
+
+    .dpad {
+      display: grid;
+      grid-template-columns: repeat(3, 46px);
+      grid-template-rows: repeat(3, 46px);
+      gap: 4px;
+    }
+
+    .dpad-btn {
+      background: var(--bg-card);
+      border: 2.5px solid var(--border-main);
+      box-shadow: 3px 3px 0px var(--border-main);
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    .dpad-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0px var(--border-main);
+      background: #facc15;
+      color: #18181b;
+    }
+
+    .dash-action-btn {
+      width: 68px;
+      height: 68px;
+      background: #facc15;
+      color: #18181b;
+      border: 2.5px solid #18181b;
+      box-shadow: 4px 4px 0px #18181b;
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      touch-action: manipulation;
+    }
+
+    .keyboard-hint {
+      background: var(--bg-card);
+      border: 2px solid var(--border-main);
+      box-shadow: 3px 3px 0px var(--border-main);
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1.5;
+      max-width: 330px;
+    }
+
+    .kbd {
+      display: inline-block;
+      padding: 1px 5px;
+      background: #facc15;
+      color: #18181b;
+      border: 1.5px solid #18181b;
+      font-weight: 800;
+      font-size: 10px;
+    }
+
+    /* Floating Score Popups */
+    #floating-popups {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 15;
+      overflow: hidden;
+    }
+
+    .score-popup {
+      position: absolute;
+      font-size: 18px;
+      font-weight: 900;
+      color: #facc15;
+      text-shadow: 2px 2px 0 #18181b, -1px -1px 0 #18181b, 1px -1px 0 #18181b, -1px 1px 0 #18181b;
+      transform: translate(-50%, -50%);
+      animation: floatUp 0.95s ease-out forwards;
+    }
+
+    @keyframes floatUp {
+      0% { opacity: 1; transform: translate(-50%, -50%) scale(0.7); }
+      30% { opacity: 1; transform: translate(-50%, -95%) scale(1.15); }
+      100% { opacity: 0; transform: translate(-50%, -150%) scale(1); }
+    }
+
+    /* Multiplayer Lobby Modal */
+    #modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.35);
+      backdrop-filter: blur(4px);
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    .modal-card {
+      background: #fffcf5;
+      color: #18181b;
+      border: 3.5px solid #18181b;
+      box-shadow: 10px 10px 0px #18181b;
+      max-width: 620px;
+      width: 100%;
+      padding: 22px 26px;
+      text-align: left;
+      position: relative;
+      max-height: 94vh;
+      overflow-y: auto;
+    }
+
+    .modal-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+    }
+
+    .modal-tag {
+      display: inline-block;
+      background: #facc15;
+      border: 2px solid #18181b;
+      padding: 3px 9px;
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .ws-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 9px;
+      border: 2px solid #18181b;
+      background: #dcfce7;
+      color: #14532d;
+    }
+
+    .modal-title {
+      font-family: Georgia, 'Times New Roman', Times, serif;
+      font-size: 34px;
+      font-weight: 900;
+      line-height: 1.05;
+      margin-bottom: 6px;
+      letter-spacing: -0.03em;
+    }
+
+    .modal-desc {
+      font-size: 13px;
+      line-height: 1.45;
+      color: #3f3f46;
+      margin-bottom: 14px;
+    }
+
+    /* Lobby Form Controls */
+    .lobby-section {
+      border: 2px solid #18181b;
+      background: #fefce8;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #18181b;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .input-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .field-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: #3f3f46;
+    }
+
+    .brutal-input {
+      width: 100%;
+      padding: 8px 10px;
+      font-size: 13px;
+      font-weight: 700;
+      border: 2px solid #18181b;
+      background: #ffffff;
+      color: #18181b;
+      outline: none;
+    }
+
+    .brutal-input:focus {
+      background: #fef9c3;
+      box-shadow: 2px 2px 0px #18181b;
+    }
+
+    /* Role Selection Grid (5 Playable Characters) */
+    .roles-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+
+    .role-card {
+      border: 2.5px solid #18181b;
+      background: #ffffff;
+      padding: 8px 6px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.12s ease;
+      position: relative;
+    }
+
+    .role-card:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 3px 3px 0px #18181b;
+    }
+
+    .role-card.selected {
+      background: #fef08a;
+      box-shadow: 4px 4px 0px #18181b;
+      transform: translate(-2px, -2px);
+    }
+
+    .role-card.taken {
+      opacity: 0.6;
+      background: #f4f4f5;
+    }
+
+    .role-avatar {
+      width: 30px;
+      height: 30px;
+      margin: 0 auto 5px;
+      border: 2px solid #18181b;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 900;
+    }
+
+    .role-name {
+      font-size: 11px;
+      font-weight: 900;
+      display: block;
+    }
+
+    .role-sub {
+      font-size: 9px;
+      font-weight: 700;
+      color: #52525b;
+      display: block;
+      margin-top: 1px;
+    }
+
+    .role-owner {
+      font-size: 9px;
+      font-weight: 800;
+      color: #15803d;
+      margin-top: 3px;
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Room Create / Join Bar */
+    .room-actions-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1.4fr;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .join-group {
+      display: flex;
+      gap: 6px;
+    }
+
+    .brutal-btn {
+      background: #ffffff;
+      color: #18181b;
+      border: 2.5px solid #18181b;
+      box-shadow: 3px 3px 0px #18181b;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.12s ease;
+    }
+
+    .brutal-btn:hover {
+      background: #fde047;
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0px #18181b;
+    }
+
+    .brutal-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0px #18181b;
+    }
+
+    .brutal-btn.green {
+      background: #4ade80;
+    }
+
+    .brutal-btn.blue {
+      background: #60a5fa;
+      color: #fff;
+    }
+
+    /* Active Room Lobby Roster */
+    .lobby-room-box {
+      border: 2px dashed #18181b;
+      background: #ffffff;
+      padding: 10px 12px;
+      margin-top: 10px;
+    }
+
+    .lobby-slots-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .slot-chip {
+      border: 1.5px solid #18181b;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 800;
+      background: #f4f4f5;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .slot-chip.human {
+      background: #dcfce7;
+      border-color: #15803d;
+    }
+
+    .active-rooms-bar {
+      margin-top: 8px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .room-pill-btn {
+      border: 1.5px solid #18181b;
+      background: #e0f2fe;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .room-pill-btn:hover {
+      background: #bae6fd;
+    }
+
+    .primary-btn {
+      width: 100%;
+      background: #facc15;
+      color: #18181b;
+      border: 3px solid #18181b;
+      box-shadow: 5px 5px 0px #18181b;
+      padding: 13px 18px;
+      font-size: 17px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s ease;
+    }
+
+    .primary-btn:hover {
+      background: #fde047;
+      transform: translate(-2px, -2px);
+      box-shadow: 7px 7px 0px #18181b;
+    }
+
+    .primary-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0px #18181b;
+    }
+
+    #lobby-alert {
+      display: none;
+      border: 2px solid #dc2626;
+      background: #fef2f2;
+      color: #991b1b;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    @media (max-width: 768px) {
+      .keyboard-hint { display: none; }
+      .stat-card { min-width: 82px; padding: 5px 9px; }
+      .stat-value { font-size: 17px; }
+      #minimap { width: 96px; height: 96px; }
+      .roles-grid { grid-template-columns: repeat(3, 1fr); }
+      .input-row, .room-actions-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+  <div id="nameplates-layer"></div>
+  <div id="floating-popups"></div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div class="top-bar">
+      <div class="stats-group">
+        <div class="stat-card">
+          <div class="stat-label">Điểm số (Score)</div>
+          <div class="stat-value" id="score-val">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Kỷ lục (High)</div>
+          <div class="stat-value" id="high-val">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Màn (Level)</div>
+          <div class="stat-value" id="level-val">1</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Mạng Pac-Man</div>
+          <div class="lives-container" id="lives-box"></div>
+        </div>
+      </div>
+
+      <div class="controls-group">
+        <button class="hud-btn" id="btn-open-lobby" title="Đổi Phòng / Vai Trò">
+          🌐 Phòng: <span id="hud-room-code">SOLO</span> (<span id="hud-role-label">Pac-Man</span>)
+        </button>
+        <button class="hud-btn" id="btn-camera" title="Đổi góc nhìn Camera (Phím C)">
+          🎥 Góc nhìn: <span id="cam-label">WoraWork Follow</span>
+        </button>
+        <button class="hud-btn" id="btn-theme" title="Đổi chủ đề hình ảnh (Phím T)">
+          🎨 Giao diện: <span id="theme-label">Đảo Đồ Chơi 3D</span>
+        </button>
+        <button class="hud-btn" id="btn-sound" title="Bật/Tắt Âm thanh (Phím M)">
+          🔊 Âm thanh: <span id="sound-label">Bật</span>
+        </button>
+        <button class="hud-btn" id="btn-pause" title="Tạm dừng / Mở sảnh (Phím P)">
+          ⏸️ Sảnh / Tạm dừng
+        </button>
+      </div>
+    </div>
+
+    <div class="status-bars">
+      <div class="bar-pill">
+        <div class="bar-header">
+          <span id="skill-bar-title">⚡ Lướt nhanh (Space)</span>
+          <span id="dash-status-text">Sẵn sàng</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" id="dash-bar" style="background: #22c55e;"></div>
+        </div>
+      </div>
+
+      <div class="bar-pill" id="power-pill-box">
+        <div class="bar-header">
+          <span>👻 Săn Ma (Power Mode)</span>
+          <span id="power-time-text">8.0s</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" id="power-bar" style="background: #3b82f6;"></div>
+        </div>
+      </div>
+
+      <div class="room-hud-panel" id="room-hud-panel">
+        <div class="room-hud-header">
+          <span>👥 Người Chơi Trong Phòng</span>
+          <span id="room-hud-count">1/5</span>
+        </div>
+        <div id="room-hud-players"></div>
+      </div>
+    </div>
+
+    <div class="bottom-bar">
+      <div class="minimap-card">
+        <div class="minimap-title">
+          <span>RADAR 2D</span>
+          <span id="pellets-left">0 hạt</span>
+        </div>
+        <canvas id="minimap" width="147" height="147"></canvas>
+      </div>
+
+      <div class="keyboard-hint">
+        <div><span class="kbd">W</span> <span class="kbd">A</span> <span class="kbd">S</span> <span class="kbd">D</span> / <span class="kbd">↑</span> <span class="kbd">←</span> <span class="kbd">↓</span> <span class="kbd">→</span> : Điều khiển nhân vật đã chọn</div>
+        <div><span class="kbd">SPACE</span> : Tốc biến / Tăng tốc &nbsp;|&nbsp; <span class="kbd">C</span> : Đổi Camera</div>
+        <div><span class="kbd">T</span> : Đổi Chủ đề &nbsp;|&nbsp; Mở 2 tab hoặc nối WebSocket để chơi cùng nhau!</div>
+      </div>
+
+      <div class="dpad-wrapper">
+        <button class="dash-action-btn" id="btn-dash-touch">
+          <span style="font-size:20px;">⚡</span>
+          <span>BOOST</span>
+        </button>
+        <div class="dpad">
+          <div></div>
+          <button class="dpad-btn" data-dir="UP">▲</button>
+          <div></div>
+          <button class="dpad-btn" data-dir="LEFT">◀</button>
+          <button class="dpad-btn" data-dir="DOWN">▼</button>
+          <button class="dpad-btn" data-dir="RIGHT">▶</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Multiplayer Lobby & Role Selection Modal -->
+  <div id="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header-row">
+        <span class="modal-tag" id="modal-badge">WORAWORK DIORAMA × MULTIPLAYER</span>
+        <span class="ws-status-pill" id="ws-status-pill">🟢 Đa Tab &amp; WebSocket Sẵn Sàng</span>
+      </div>
+      <h1 class="modal-title" id="modal-title">PAC-MAN 3D ONLINE</h1>
+      <p class="modal-desc" id="modal-desc">
+        Điền tên của bạn, chọn hóa thân thành <strong>Pac-Man</strong> hoặc 1 trong <strong>4 Bóng Ma</strong>, sau đó tạo phòng hoặc nhập mã phòng để chơi nhiều người qua WebSocket / Đa Tab thời gian thực!
+      </p>
+
+      <div id="lobby-alert"></div>
+
+      <!-- Step 1: Player Name & WebSocket URL -->
+      <div class="lobby-section">
+        <div class="section-title">
+          <span>1. Hồ Sơ Người Chơi &amp; Máy Chủ WebSocket</span>
+          <span style="font-size:10px; color:#15803d;">Tự động đồng bộ Đa Tab + WebSocket</span>
+        </div>
+        <div class="input-row">
+          <div class="field-group">
+            <label class="field-label" for="input-player-name">Tên hiển thị trên đầu nhân vật 3D:</label>
+            <input type="text" id="input-player-name" class="brutal-input" maxlength="16" placeholder="Nhập tên của bạn..." value="WoraPlayer" />
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="input-ws-url">Địa chỉ WebSocket Server (Tự động kết nối):</label>
+            <div class="join-group">
+              <input type="text" id="input-ws-url" class="brutal-input" placeholder="Tự động nhận diện WebSocket..." />
+              <button class="brutal-btn" id="btn-connect-ws" title="Kết nối lại tới WebSocket Server">Kết Nối</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Choose Role (Pac-Man or 1 of 4 Ghosts) -->
+      <div class="lobby-section">
+        <div class="section-title">
+          <span>2. Chọn Vai Trò Của Bạn (Các vị trí trống sẽ do AI điều khiển)</span>
+          <span id="selected-role-hint" style="color:#b45309;">Đang chọn: PAC-MAN</span>
+        </div>
+        <div class="roles-grid" id="roles-grid">
+          <div class="role-card selected" data-role="pacman">
+            <div class="role-avatar" style="background:#facc15;">😮</div>
+            <span class="role-name">PAC-MAN</span>
+            <span class="role-sub">Ăn hạt &amp; Săn ma</span>
+            <span class="role-owner" id="owner-pacman">Bạn chọn</span>
+          </div>
+          <div class="role-card" data-role="Blinky">
+            <div class="role-avatar" style="background:#ef4444; color:#fff;">👻</div>
+            <span class="role-name">BLINKY</span>
+            <span class="role-sub">Ma Đỏ Tốc Độ</span>
+            <span class="role-owner" id="owner-Blinky">AI Bot</span>
+          </div>
+          <div class="role-card" data-role="Pinky">
+            <div class="role-avatar" style="background:#f472b6; color:#fff;">👻</div>
+            <span class="role-name">PINKY</span>
+            <span class="role-sub">Ma Hồng Đón Đầu</span>
+            <span class="role-owner" id="owner-Pinky">AI Bot</span>
+          </div>
+          <div class="role-card" data-role="Inky">
+            <div class="role-avatar" style="background:#38bdf8; color:#fff;">👻</div>
+            <span class="role-name">INKY</span>
+            <span class="role-sub">Ma Xanh Bọc Sườn</span>
+            <span class="role-owner" id="owner-Inky">AI Bot</span>
+          </div>
+          <div class="role-card" data-role="Clyde">
+            <div class="role-avatar" style="background:#f97316; color:#fff;">👻</div>
+            <span class="role-name">CLYDE</span>
+            <span class="role-sub">Ma Cam Hộ Vệ</span>
+            <span class="role-owner" id="owner-Clyde">AI Bot</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Create Room or Join Room -->
+      <div class="lobby-section">
+        <div class="section-title">
+          <span>3. Tạo Phòng Mới Hoặc Nhập Mã Vào Phòng</span>
+          <span id="room-status-badge" style="color:#1d4ed8;">Chế độ: Sẵn sàng lập phòng</span>
+        </div>
+        <div class="room-actions-grid">
+          <button class="brutal-btn green" id="btn-create-room" style="height:38px;">
+            ➕ Tạo Phòng Mới
+          </button>
+          <div class="join-group">
+            <input type="text" id="input-room-code" class="brutal-input" maxlength="10" placeholder="Nhập mã phòng (VD: WORA1)..." style="text-transform:uppercase;" />
+            <button class="brutal-btn blue" id="btn-join-room">🚪 Vào Phòng</button>
+          </div>
+        </div>
+
+        <div class="active-rooms-bar" id="active-rooms-bar">
+          <span style="font-weight:800; color:#52525b;">Phòng đang mở:</span>
+          <span id="active-rooms-list" style="color:#71717a;">Chưa có phòng nào (Hãy nhấn Tạo Phòng Mới)</span>
+        </div>
+
+        <div class="lobby-room-box" id="lobby-room-box">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong style="font-size:12px;">Mã Phòng Hiện Tại: <span id="lobby-current-code" style="color:#dc2626; font-size:14px;">CHƯA VÀO PHÒNG</span></strong>
+            <button class="room-pill-btn" id="btn-copy-code" style="display:none;">📋 Sao chép mã</button>
+          </div>
+          <div class="lobby-slots-list" id="lobby-slots-list"></div>
+        </div>
+      </div>
+
+      <button class="primary-btn" id="btn-start-game">Let's Go — Bắt Đầu Trận Đấu</button>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. AUDIO SYNTHESIZER (Web Audio API - Safe & Non-blocking)
+    // =========================================================================
+    class SoundEffects {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+        this.chompToggle = false;
+        this.lastChompTime = 0;
+      }
+
+      init() {
+        try {
+          if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) this.ctx = new AudioCtx();
+          }
+          if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+          }
+        } catch (e) {}
+      }
+
+      playTone(freqStart, freqEnd, duration, type = 'triangle', gainVal = 0.1) {
+        if (!this.enabled || !this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freqStart, now);
+          osc.frequency.exponentialRampToValueAtTime(Math.max(20, freqEnd), now + duration);
+
+          gain.gain.setValueAtTime(gainVal, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.onended = () => {
+            try {
+              osc.disconnect();
+              gain.disconnect();
+            } catch (e) {}
+          };
+          osc.start(now);
+          osc.stop(now + duration);
+        } catch (e) {}
+      }
+
+      chomp() {
+        const now = performance.now();
+        if (now - this.lastChompTime < 55) return;
+        this.lastChompTime = now;
+        this.chompToggle = !this.chompToggle;
+        if (this.chompToggle) {
+          this.playTone(280, 440, 0.065, 'triangle', 0.09);
+        } else {
+          this.playTone(420, 260, 0.065, 'triangle', 0.09);
+        }
+      }
+
+      powerPellet() {
+        this.playTone(300, 780, 0.16, 'sine', 0.15);
+        setTimeout(() => this.playTone(520, 980, 0.2, 'sine', 0.15), 85);
+      }
+
+      eatGhost() {
+        this.playTone(220, 880, 0.22, 'sawtooth', 0.14);
+        setTimeout(() => this.playTone(660, 1320, 0.18, 'square', 0.12), 95);
+      }
+
+      eatFruit() {
+        [523, 659, 784, 1046].forEach((f, idx) => {
+          setTimeout(() => this.playTone(f, f * 1.08, 0.1, 'triangle', 0.13), idx * 65);
+        });
+      }
+
+      dash() {
+        this.playTone(600, 180, 0.14, 'sine', 0.13);
+      }
+
+      die() {
+        [500, 430, 360, 290, 210, 130].forEach((f, idx) => {
+          setTimeout(() => this.playTone(f, f * 0.8, 0.1, 'sawtooth', 0.13), idx * 75);
+        });
+      }
+
+      levelClear() {
+        [440, 554, 659, 880, 659, 880, 1174].forEach((f, idx) => {
+          setTimeout(() => this.playTone(f, f * 1.02, 0.13, 'triangle', 0.14), idx * 90);
+        });
+      }
+    }
+
+    const sfx = new SoundEffects();
+
+    // =========================================================================
+    // 2. MAZE CONFIGURATION (21x21 Symmetrical Arcade Diorama Map)
+    // =========================================================================
+    const MAZE_TEMPLATE = [
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,2,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,2,1],
+      [1,0,1,1,1,0,1,1,1,0,1,0,1,1,1,0,1,1,1,0,1],
+      [1,0,1,1,1,0,1,1,1,0,1,0,1,1,1,0,1,1,1,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,1,1,1,0,1,0,1,1,1,1,1,0,1,0,1,1,1,0,1],
+      [1,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,0,1],
+      [1,1,1,1,1,0,1,1,1,3,1,3,1,1,1,0,1,1,1,1,1],
+      [6,6,6,6,1,0,1,3,3,3,3,3,3,3,1,0,1,6,6,6,6],
+      [1,1,1,1,1,0,1,3,1,1,4,1,1,3,1,0,1,1,1,1,1],
+      [3,3,3,3,3,0,3,3,1,5,5,5,1,3,3,0,3,3,3,3,3],
+      [1,1,1,1,1,0,1,3,1,1,1,1,1,3,1,0,1,1,1,1,1],
+      [6,6,6,6,1,0,1,3,3,3,3,3,3,3,1,0,1,6,6,6,6],
+      [1,1,1,1,1,0,1,3,1,1,1,1,1,3,1,0,1,1,1,1,1],
+      [1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
+      [1,0,1,1,1,0,1,1,1,0,1,0,1,1,1,0,1,1,1,0,1],
+      [1,2,0,0,1,0,0,0,0,0,3,0,0,0,0,0,1,0,0,2,1],
+      [1,1,1,0,1,0,1,0,1,1,1,1,1,0,1,0,1,0,1,1,1],
+      [1,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,0,1],
+      [1,0,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,1,0,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+    ];
+
+    const GRID_SIZE = 21;
+    const TILE_SIZE = 2.0;
+    const HALF_BOARD = (GRID_SIZE * TILE_SIZE) / 2 - TILE_SIZE / 2;
+
+    function gridToWorld(gx, gz) {
+      return {
+        x: gx * TILE_SIZE - HALF_BOARD,
+        z: gz * TILE_SIZE - HALF_BOARD
+      };
+    }
+
+    const DIRS = {
+      NONE:  { name: 'NONE',  x: 0,  z: 0,  angle: 0 },
+      UP:    { name: 'UP',    x: 0,  z: -1, angle: Math.PI },
+      DOWN:  { name: 'DOWN',  x: 0,  z: 1,  angle: 0 },
+      LEFT:  { name: 'LEFT',  x: -1, z: 0,  angle: -Math.PI / 2 },
+      RIGHT: { name: 'RIGHT', x: 1,  z: 0,  angle: Math.PI / 2 }
+    };
+
+    const CARDINAL_DIRS = [DIRS.UP, DIRS.LEFT, DIRS.DOWN, DIRS.RIGHT];
+    const ALL_ROLES = ['pacman', 'Blinky', 'Pinky', 'Inky', 'Clyde'];
+    const ROLE_COLORS = {
+      pacman: '#facc15',
+      Blinky: '#ef4444',
+      Pinky: '#f472b6',
+      Inky: '#38bdf8',
+      Clyde: '#f97316'
+    };
+
+    // =========================================================================
+    // 3. THREE.JS DIORAMA SCENE
+    // =========================================================================
+    const container = document.getElementById('canvas-container');
+    const minimapCanvas = document.getElementById('minimap');
+    const minimapCtx = minimapCanvas.getContext('2d');
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x93d5f6);
+    scene.fog = new THREE.FogExp2(0x93d5f6, 0.0075);
+
+    const wInit = Math.max(320, window.innerWidth || 1024);
+    const hInit = Math.max(240, window.innerHeight || 768);
+    const camera = new THREE.PerspectiveCamera(42, wInit / hInit, 0.5, 220);
+
+    const startWorld = gridToWorld(10, 16);
+    camera.position.set(startWorld.x * 0.68, 26.5, startWorld.z * 0.68 + 18.5);
+    const cameraTarget = new THREE.Vector3(startWorld.x * 0.55, 0, startWorld.z * 0.55 + 1.2);
+    camera.lookAt(cameraTarget);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(wInit, hInit);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    container.appendChild(renderer.domElement);
+
+    renderer.domElement.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault();
+    }, false);
+
+    const hemiLight = new THREE.HemisphereLight(0xfffbeb, 0x38bdf8, 0.78);
+    hemiLight.position.set(0, 50, 0);
+    scene.add(hemiLight);
+
+    const dirLight = new THREE.DirectionalLight(0xfff7ed, 0.92);
+    dirLight.position.set(22, 40, 24);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 1024;
+    dirLight.shadow.mapSize.height = 1024;
+    dirLight.shadow.camera.near = 8;
+    dirLight.shadow.camera.far = 95;
+    const shadowBound = 26;
+    dirLight.shadow.camera.left = -shadowBound;
+    dirLight.shadow.camera.right = shadowBound;
+    dirLight.shadow.camera.top = shadowBound;
+    dirLight.shadow.camera.bottom = -shadowBound;
+    dirLight.shadow.bias = -0.0008;
+    scene.add(dirLight);
+
+    const pacGlowLight = new THREE.PointLight(0xfacc15, 0.55, 7.5);
+    scene.add(pacGlowLight);
+
+    function createCheckerboardTexture(col1, col2) {
+      const cvs = document.createElement('canvas');
+      cvs.width = 512;
+      cvs.height = 512;
+      const ctx = cvs.getContext('2d');
+      const cells = GRID_SIZE;
+      const step = cvs.width / cells;
+      for (let z = 0; z < cells; z++) {
+        for (let x = 0; x < cells; x++) {
+          ctx.fillStyle = (x + z) % 2 === 0 ? col1 : col2;
+          ctx.fillRect(x * step, z * step, Math.ceil(step), Math.ceil(step));
+        }
+      }
+      const tex = new THREE.CanvasTexture(cvs);
+      tex.magFilter = THREE.NearestFilter;
+      tex.minFilter = THREE.LinearFilter;
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    const floorTexCozy = createCheckerboardTexture('#fef3c7', '#fde68a');
+    const floorTexNeon = createCheckerboardTexture('#0f172a', '#1e293b');
+
+    const materials = {
+      wallBase: new THREE.MeshStandardMaterial({ color: 0xe2c799, roughness: 0.55, metalness: 0.05 }),
+      wallTop: new THREE.MeshStandardMaterial({ color: 0x4ade80, roughness: 0.45, metalness: 0.05 }),
+      floorBoard: new THREE.MeshStandardMaterial({ map: floorTexCozy, roughness: 0.75 }),
+      islandCliff: new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.8 }),
+      water: new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.25, metalness: 0.1, transparent: true, opacity: 0.9 }),
+      pellet: new THREE.MeshStandardMaterial({ color: 0xfbbf24, emissive: 0xf59e0b, emissiveIntensity: 0.35, roughness: 0.25, metalness: 0.2 }),
+      powerPellet: new THREE.MeshStandardMaterial({ color: 0xfef08a, emissive: 0xfacc15, emissiveIntensity: 0.85, roughness: 0.1 }),
+      door: new THREE.MeshStandardMaterial({ color: 0xf472b6, emissive: 0xec4899, emissiveIntensity: 0.5, transparent: true, opacity: 0.78 }),
+      portal: new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.8, roughness: 0.2 }),
+      treeTrunk: new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.7 }),
+      treeLeaves: new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.5 })
+    };
+
+    const worldGroup = new THREE.Group();
+    const pelletsGroup = new THREE.Group();
+    const propsGroup = new THREE.Group();
+    scene.add(worldGroup, pelletsGroup, propsGroup);
+
+    const clouds = [];
+
+    function buildEnvironmentBase() {
+      const waterGeo = new THREE.PlaneGeometry(220, 220);
+      waterGeo.rotateX(-Math.PI / 2);
+      const waterMesh = new THREE.Mesh(waterGeo, materials.water);
+      waterMesh.position.y = -1.6;
+      worldGroup.add(waterMesh);
+
+      const boardSpan = GRID_SIZE * TILE_SIZE;
+      const islandWidth = boardSpan + 5.5;
+      const islandMesh = new THREE.Mesh(new THREE.BoxGeometry(islandWidth, 2.3, islandWidth), materials.islandCliff);
+      islandMesh.position.y = -1.25;
+      islandMesh.receiveShadow = true;
+      worldGroup.add(islandMesh);
+
+      const rimMesh = new THREE.Mesh(new THREE.BoxGeometry(islandWidth + 0.6, 0.38, islandWidth + 0.6), materials.wallTop);
+      rimMesh.position.y = -0.22;
+      rimMesh.receiveShadow = true;
+      worldGroup.add(rimMesh);
+
+      const floorMesh = new THREE.Mesh(new THREE.BoxGeometry(boardSpan, 0.2, boardSpan), materials.floorBoard);
+      floorMesh.position.y = -0.1;
+      floorMesh.receiveShadow = true;
+      worldGroup.add(floorMesh);
+
+      const treePositions = [
+        [-23, -22], [-18, -23], [18, -23], [23, -22],
+        [-23, 22], [-17, 23], [17, 23], [23, 22],
+        [-23.5, -5], [-23.5, 5], [23.5, -5], [23.5, 5]
+      ];
+      treePositions.forEach(([tx, tz], idx) => {
+        const tree = createStylizedTree(0.85 + (idx % 3) * 0.18);
+        tree.position.set(tx, 0, tz);
+        propsGroup.add(tree);
+      });
+
+      [-HALF_BOARD - 1.0, HALF_BOARD + 1.0].forEach((px) => {
+        const archGroup = new THREE.Group();
+        const pillarGeo = new THREE.BoxGeometry(0.45, 2.4, 0.45);
+        const p1 = new THREE.Mesh(pillarGeo, materials.portal);
+        p1.position.set(0, 1.2, -1.1);
+        const p2 = new THREE.Mesh(pillarGeo, materials.portal);
+        p2.position.set(0, 1.2, 1.1);
+        const topBar = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.45, 2.7), materials.portal);
+        topBar.position.set(0, 2.4, 0);
+        archGroup.add(p1, p2, topBar);
+        archGroup.position.set(px, 0, gridToWorld(10, 10).z);
+        propsGroup.add(archGroup);
+      });
+
+      const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 });
+      for (let i = 0; i < 8; i++) {
+        const cGroup = new THREE.Group();
+        for (let p = 0; p < 3; p++) {
+          const puff = new THREE.Mesh(new THREE.SphereGeometry(1.5 + (p % 2) * 0.5, 10, 10), cloudMat);
+          puff.position.set((p - 1) * 1.4, (p % 2) * 0.3, 0);
+          puff.scale.y = 0.65;
+          cGroup.add(puff);
+        }
+        const angle = (i / 8) * Math.PI * 2;
+        const radius = 39 + (i % 3) * 6;
+        cGroup.position.set(Math.cos(angle) * radius, 6 + (i % 3) * 2.5, Math.sin(angle) * radius);
+        scene.add(cGroup);
+        clouds.push({ mesh: cGroup, angle, radius, speed: 0.025 + (i % 3) * 0.012 });
+      }
+    }
+
+    function createStylizedTree(scale = 1) {
+      const group = new THREE.Group();
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.42, 1.4, 7), materials.treeTrunk);
+      trunk.position.y = 0.7;
+      trunk.castShadow = true;
+      group.add(trunk);
+
+      const crown1 = new THREE.Mesh(new THREE.SphereGeometry(1.15, 10, 10), materials.treeLeaves);
+      crown1.position.y = 1.9;
+      crown1.castShadow = true;
+      group.add(crown1);
+
+      const crown2 = new THREE.Mesh(new THREE.SphereGeometry(0.82, 9, 9), materials.treeLeaves);
+      crown2.position.set(0.38, 2.48, 0.2);
+      crown2.castShadow = true;
+      group.add(crown2);
+
+      group.scale.setScalar(scale);
+      return group;
+    }
+
+    function buildMazeWalls() {
+      const baseGeo = new THREE.BoxGeometry(TILE_SIZE * 0.94, 1.15, TILE_SIZE * 0.94);
+      const capGeo = new THREE.BoxGeometry(TILE_SIZE * 0.98, 0.36, TILE_SIZE * 0.98);
+      const doorGeo = new THREE.BoxGeometry(TILE_SIZE * 0.95, 0.75, TILE_SIZE * 0.32);
+
+      for (let gz = 0; gz < GRID_SIZE; gz++) {
+        for (let gx = 0; gx < GRID_SIZE; gx++) {
+          const cell = MAZE_TEMPLATE[gz][gx];
+          const pos = gridToWorld(gx, gz);
+          if (cell === 1) {
+            const base = new THREE.Mesh(baseGeo, materials.wallBase);
+            base.position.set(pos.x, 0.575, pos.z);
+            base.castShadow = true;
+            base.receiveShadow = true;
+
+            const cap = new THREE.Mesh(capGeo, materials.wallTop);
+            cap.position.set(pos.x, 1.25, pos.z);
+            cap.castShadow = true;
+            cap.receiveShadow = true;
+
+            worldGroup.add(base, cap);
+          } else if (cell === 4) {
+            const door = new THREE.Mesh(doorGeo, materials.door);
+            door.position.set(pos.x, 0.45, pos.z);
+            worldGroup.add(door);
+          }
+        }
+      }
+    }
+
+    // =========================================================================
+    // 4. OBJECT-POOLED PARTICLE SYSTEM
+    // =========================================================================
+    const MAX_PARTICLES = 70;
+    const sharedParticleGeo = new THREE.SphereGeometry(0.14, 6, 6);
+    const particlePool = [];
+
+    for (let i = 0; i < MAX_PARTICLES; i++) {
+      const mat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+      const mesh = new THREE.Mesh(sharedParticleGeo, mat);
+      mesh.visible = false;
+      scene.add(mesh);
+      particlePool.push({
+        mesh,
+        mat,
+        active: false,
+        vx: 0,
+        vy: 0,
+        vz: 0,
+        life: 0,
+        maxLife: 0.6
+      });
+    }
+
+    let particleCursor = 0;
+    function spawnParticles(wx, wy, wz, colorHex, count = 8, speedScale = 1) {
+      for (let i = 0; i < count; i++) {
+        const p = particlePool[particleCursor];
+        particleCursor = (particleCursor + 1) % MAX_PARTICLES;
+        p.active = true;
+        p.mat.color.setHex(colorHex);
+        p.mesh.position.set(wx, wy, wz);
+        p.mesh.scale.setScalar(1);
+        p.mesh.visible = true;
+
+        const angle = Math.random() * Math.PI * 2;
+        const spd = (1.4 + Math.random() * 3.2) * speedScale;
+        p.vx = Math.cos(angle) * spd;
+        p.vy = 1.8 + Math.random() * 3.0;
+        p.vz = Math.sin(angle) * spd;
+        p.maxLife = 0.4 + Math.random() * 0.25;
+        p.life = p.maxLife;
+      }
+    }
+
+    function updateParticles(dt) {
+      for (let i = 0; i < MAX_PARTICLES; i++) {
+        const p = particlePool[i];
+        if (!p.active) continue;
+        p.life -= dt;
+        if (p.life <= 0) {
+          p.active = false;
+          p.mesh.visible = false;
+          continue;
+        }
+        p.vy -= 9.8 * dt;
+        p.mesh.position.x += p.vx * dt;
+        p.mesh.position.y = Math.max(0.05, p.mesh.position.y + p.vy * dt);
+        p.mesh.position.z += p.vz * dt;
+        p.mesh.scale.setScalar(Math.max(0.05, p.life / p.maxLife));
+      }
+    }
+
+    // =========================================================================
+    // 5. CHARACTER MODELS & FLOATING NAMEPLATES
+    // =========================================================================
+    function createPacManMesh() {
+      const root = new THREE.Group();
+      const bodyGroup = new THREE.Group();
+      root.add(bodyGroup);
+
+      const pacMat = new THREE.MeshStandardMaterial({
+        color: 0xfacc15,
+        roughness: 0.22,
+        metalness: 0.1
+      });
+      const mouthInsideMat = new THREE.MeshBasicMaterial({ color: 0x7f1d1d, side: THREE.DoubleSide });
+
+      const upperJaw = new THREE.Group();
+      const upperSphere = new THREE.Mesh(
+        new THREE.SphereGeometry(0.82, 20, 14, 0, Math.PI * 2, 0, Math.PI / 2),
+        pacMat
+      );
+      upperSphere.castShadow = true;
+      const upperCap = new THREE.Mesh(new THREE.CircleGeometry(0.82, 20), mouthInsideMat);
+      upperCap.rotation.x = Math.PI / 2;
+      upperJaw.add(upperSphere, upperCap);
+
+      const lowerJaw = new THREE.Group();
+      const lowerSphere = new THREE.Mesh(
+        new THREE.SphereGeometry(0.82, 20, 14, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
+        pacMat
+      );
+      lowerSphere.castShadow = true;
+      const lowerCap = new THREE.Mesh(new THREE.CircleGeometry(0.82, 20), mouthInsideMat);
+      lowerCap.rotation.x = -Math.PI / 2;
+      lowerJaw.add(lowerSphere, lowerCap);
+
+      const eyeMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.1 });
+      const highlightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      [-0.32, 0.32].forEach((ex) => {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 10), eyeMat);
+        eye.position.set(ex, 0.42, 0.62);
+        const glint = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 6), highlightMat);
+        glint.position.set(ex + 0.04, 0.47, 0.72);
+        upperJaw.add(eye, glint);
+      });
+
+      const cheekMat = new THREE.MeshBasicMaterial({ color: 0xf97316 });
+      [-0.52, 0.52].forEach((cx) => {
+        const cheek = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), cheekMat);
+        cheek.scale.set(1.2, 0.6, 0.5);
+        cheek.position.set(cx, 0.22, 0.64);
+        upperJaw.add(cheek);
+      });
+
+      bodyGroup.add(upperJaw, lowerJaw);
+      bodyGroup.position.y = 0.85;
+
+      return { root, bodyGroup, upperJaw, lowerJaw };
+    }
+
+    function createGhostMesh(hexColor) {
+      const root = new THREE.Group();
+      const bodyGroup = new THREE.Group();
+      root.add(bodyGroup);
+
+      const mat = new THREE.MeshStandardMaterial({
+        color: hexColor,
+        roughness: 0.28,
+        metalness: 0.08
+      });
+
+      const dome = new THREE.Mesh(
+        new THREE.SphereGeometry(0.75, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2),
+        mat
+      );
+      dome.position.y = 0.82;
+      dome.castShadow = true;
+
+      const torso = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.75, 0.75, 0.68, 16),
+        mat
+      );
+      torso.position.y = 0.48;
+      torso.castShadow = true;
+
+      const skirtGroup = new THREE.Group();
+      const waveCount = 6;
+      for (let i = 0; i < waveCount; i++) {
+        const angle = (i / waveCount) * Math.PI * 2;
+        const foot = new THREE.Mesh(new THREE.ConeGeometry(0.26, 0.35, 8), mat);
+        foot.rotation.x = Math.PI;
+        foot.position.set(Math.cos(angle) * 0.52, 0.16, Math.sin(angle) * 0.52);
+        skirtGroup.add(foot);
+      }
+
+      const eyesGroup = new THREE.Group();
+      const scleraMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1 });
+      const pupilMat = new THREE.MeshBasicMaterial({ color: 0x1d4ed8 });
+
+      [-0.27, 0.27].forEach((ex) => {
+        const sclera = new THREE.Mesh(new THREE.SphereGeometry(0.21, 10, 10), scleraMat);
+        sclera.scale.set(0.85, 1.15, 0.6);
+        sclera.position.set(ex, 0.82, 0.66);
+
+        const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), pupilMat);
+        pupil.position.set(ex, 0.82, 0.78);
+        eyesGroup.add(sclera, pupil);
+      });
+
+      bodyGroup.add(dome, torso, skirtGroup, eyesGroup);
+      return { root, bodyGroup, dome, torso, skirtGroup, mat, baseColor: hexColor };
+    }
+
+    function createFruitMesh() {
+      const group = new THREE.Group();
+      const berryMat = new THREE.MeshStandardMaterial({
+        color: 0xef4444,
+        emissive: 0x991b1b,
+        emissiveIntensity: 0.25,
+        roughness: 0.15
+      });
+      const stemMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.5 });
+
+      const c1 = new THREE.Mesh(new THREE.SphereGeometry(0.32, 12, 12), berryMat);
+      c1.position.set(-0.22, 0.42, 0);
+      const c2 = new THREE.Mesh(new THREE.SphereGeometry(0.32, 12, 12), berryMat);
+      c2.position.set(0.22, 0.38, 0.12);
+
+      const stem1 = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.65, 6), stemMat);
+      stem1.position.set(-0.1, 0.72, 0);
+      stem1.rotation.z = -0.35;
+
+      const stem2 = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.65, 6), stemMat);
+      stem2.position.set(0.1, 0.70, 0.06);
+      stem2.rotation.z = 0.35;
+
+      group.add(c1, c2, stem1, stem2);
+      return group;
+    }
+
+    // Create 5 Floating Nameplate DOM Elements
+    const nameplatesLayer = document.getElementById('nameplates-layer');
+    const nameplateEls = {};
+    ALL_ROLES.forEach((role) => {
+      const el = document.createElement('div');
+      el.className = 'char-nameplate';
+      el.innerHTML = `<span class="role-dot" style="background:${ROLE_COLORS[role]}"></span><span class="np-text">${role}</span>`;
+      nameplatesLayer.appendChild(el);
+      nameplateEls[role] = el;
+    });
+
+    function updateNameplates() {
+      const roleMeshes = {
+        pacman: pacModel.root,
+        Blinky: ghosts[0].mesh.root,
+        Pinky: ghosts[1].mesh.root,
+        Inky: ghosts[2].mesh.root,
+        Clyde: ghosts[3].mesh.root
+      };
+
+      const rolePlayers = mp.getRolePlayersMap();
+
+      ALL_ROLES.forEach((role) => {
+        const el = nameplateEls[role];
+        const mesh = roleMeshes[role];
+        if (!el || !mesh) return;
+
+        const playerInfo = rolePlayers[role];
+        const isLocalRole = (mp.myRole === role);
+        const labelText = playerInfo
+          ? `${playerInfo.name}${isLocalRole ? ' (Bạn)' : ''}`
+          : (isLocalRole ? `${mp.playerName} (Bạn)` : `${role} [AI]`);
+
+        el.querySelector('.np-text').textContent = labelText;
+        el.style.borderColor = isLocalRole ? '#facc15' : (playerInfo ? '#4ade80' : 'rgba(255,255,255,0.65)');
+        el.style.opacity = playerInfo || isLocalRole ? '1' : '0.72';
+
+        const vec = mesh.position.clone();
+        vec.y += 2.15;
+        vec.project(camera);
+
+        if (vec.z > 1) {
+          el.style.display = 'none';
+        } else {
+          el.style.display = 'flex';
+          const x = (vec.x * 0.5 + 0.5) * window.innerWidth;
+          const y = (-(vec.y * 0.5) + 0.5) * window.innerHeight;
+          el.style.left = `${x}px`;
+          el.style.top = `${y}px`;
+        }
+      });
+    }
+
+    // =========================================================================
+    // 6. GAME STATE & ENTITIES
+    // =========================================================================
+    const pacModel = createPacManMesh();
+    scene.add(pacModel.root);
+
+    const fruitMesh = createFruitMesh();
+    fruitMesh.visible = false;
+    scene.add(fruitMesh);
+
+    const GHOST_SPECS = [
+      { name: 'Blinky', color: 0xef4444, baseColor: 0xef4444, cssColor: '#ef4444', startX: 10, startZ: 8,  scatterX: 19, scatterZ: 1,  releaseDelay: 0.0 },
+      { name: 'Pinky',  color: 0xf472b6, baseColor: 0xf472b6, cssColor: '#f472b6', startX: 10, startZ: 10, scatterX: 1,  scatterZ: 1,  releaseDelay: 1.5 },
+      { name: 'Inky',   color: 0x38bdf8, baseColor: 0x38bdf8, cssColor: '#38bdf8', startX: 9,  startZ: 10, scatterX: 19, scatterZ: 19, releaseDelay: 3.5 },
+      { name: 'Clyde',  color: 0xf97316, baseColor: 0xf97316, cssColor: '#f97316', startX: 11, startZ: 10, scatterX: 1,  scatterZ: 19, releaseDelay: 5.5 }
+    ];
+
+    const ghosts = GHOST_SPECS.map((spec) => {
+      const gMesh = createGhostMesh(spec.color);
+      scene.add(gMesh.root);
+      return {
+        ...spec,
+        mesh: gMesh,
+        tileX: spec.startX,
+        tileZ: spec.startZ,
+        nextTileX: spec.startX,
+        nextTileZ: spec.startZ,
+        progress: 0,
+        gx: spec.startX,
+        gz: spec.startZ,
+        dir: DIRS.LEFT,
+        nextDir: DIRS.NONE,
+        dashTimer: 0,
+        dashCooldown: 0,
+        state: 'NORMAL', // NORMAL, FRIGHTENED, EATEN
+        inHouse: spec.startZ >= 9,
+        releaseTimer: spec.releaseDelay
+      };
+    });
+
+    const state = {
+      status: 'MENU', // MENU, PLAYING, PAUSED, GAMEOVER
+      score: 0,
+      highScore: parseInt(localStorage.getItem('pacman3d_worawork_high') || '0', 10) || 0,
+      level: 1,
+      lives: 3,
+      pelletsRemaining: 0,
+      frightenedTimer: 0,
+      frightenedDuration: 8.0,
+      ghostCombo: 0,
+      cameraMode: 0,
+      themeMode: 0,
+      fruitActive: false,
+      fruitTimer: 0,
+      fruitSpawnedThisLevel: false,
+      elapsedTime: 0
+    };
+
+    const pacman = {
+      gx: 10,
+      gz: 16,
+      dir: DIRS.NONE,
+      nextDir: DIRS.NONE,
+      baseSpeed: 5.5,
+      dashTimer: 0,
+      dashCooldown: 0,
+      mouthPhase: 0
+    };
+
+    // =========================================================================
+    // 7. MULTIPLAYER MANAGER (WebSocket + BroadcastChannel Multi-Tab Sync)
+    // =========================================================================
+    class MultiplayerManager {
+      constructor() {
+        this.playerId = 'p_' + Math.random().toString(36).slice(2, 10);
+        this.playerName = localStorage.getItem('pacman3d_player_name') || 'WoraPlayer';
+        this.myRole = 'pacman';
+        this.roomCode = '';
+        this.isHost = true;
+        this.ws = null;
+        this.wsConnected = false;
+        this.lastWsUrl = '';
+        this.reconnectTimer = null;
+        this.bc = null;
+        this.roomsCatalog = {}; // { [code]: { code, hostId, status, players: { [id]: { id, name, role, score } } } }
+        this.lastSyncSent = 0;
+
+        this.initBroadcastChannel();
+      }
+
+      initBroadcastChannel() {
+        try {
+          if (typeof BroadcastChannel !== 'undefined') {
+            this.bc = new BroadcastChannel('pacman3d_worawork_mp_v1');
+            this.bc.onmessage = (ev) => {
+              if (ev && ev.data) this.handleIncomingMessage(ev.data, 'bc');
+            };
+            // Discover existing rooms from other open browser tabs
+            this.bc.postMessage({ type: 'DISCOVER_ROOMS', senderId: this.playerId });
+          }
+        } catch (e) {}
+      }
+
+      connectWebSocket(url, isRetry = false) {
+        if (!url) return;
+        this.lastWsUrl = url;
+        if (this.reconnectTimer) {
+          clearTimeout(this.reconnectTimer);
+          this.reconnectTimer = null;
+        }
+
+        try {
+          if (this.ws) {
+            try {
+              // Remove old handlers to prevent duplicate reconnects
+              this.ws.onclose = null;
+              this.ws.onerror = null;
+              this.ws.close();
+            } catch (e) {}
+          }
+
+          const pill = document.getElementById('ws-status-pill');
+          if (pill) {
+            pill.textContent = isRetry ? '⏳ Đang thử kết nối lại WebSocket...' : '⏳ Đang kết nối WebSocket...';
+            pill.style.background = '#fef9c3';
+          }
+
+          const socket = new WebSocket(url);
+          this.ws = socket;
+
+          socket.onopen = () => {
+            this.wsConnected = true;
+            if (pill) {
+              pill.textContent = `🟢 Đã nối WS (${url})`;
+              pill.style.background = '#dcfce7';
+            }
+            if (this.roomCode) {
+              this.sendRaw({
+                type: this.isHost ? 'CREATE_ROOM' : 'JOIN_ROOM',
+                roomCode: this.roomCode,
+                playerId: this.playerId,
+                playerName: this.playerName,
+                role: this.myRole
+              });
+            }
+          };
+
+          socket.onmessage = (ev) => {
+            try {
+              const data = JSON.parse(ev.data);
+              this.handleIncomingMessage(data, 'ws');
+            } catch (e) {}
+          };
+
+          socket.onerror = () => {
+            this.wsConnected = false;
+            if (pill) {
+              pill.textContent = '🟡 WS chưa sẵn sàng (Chế độ Đa Tab Local)';
+              pill.style.background = '#fef3c7';
+            }
+          };
+
+          socket.onclose = () => {
+            this.wsConnected = false;
+            if (pill) {
+              pill.textContent = '🟡 Mất kết nối WS (Sẽ tự nối lại...)';
+              pill.style.background = '#e0f2fe';
+            }
+            // Auto reconnect after 3.5 seconds
+            if (!this.reconnectTimer) {
+              this.reconnectTimer = setTimeout(() => {
+                this.reconnectTimer = null;
+                if (!this.wsConnected) {
+                  this.connectWebSocket(this.lastWsUrl, true);
+                }
+              }, 3500);
+            }
+          };
+        } catch (e) {
+          if (!this.reconnectTimer) {
+            this.reconnectTimer = setTimeout(() => {
+              this.reconnectTimer = null;
+              if (!this.wsConnected) {
+                this.connectWebSocket(this.lastWsUrl, true);
+              }
+            }, 3500);
+          }
+        }
+      }
+
+      sendRaw(payload) {
+        if (this.ws && this.wsConnected && this.ws.readyState === 1) {
+          try {
+            this.ws.send(JSON.stringify(payload));
+          } catch (e) {}
+        }
+        if (this.bc) {
+          try {
+            this.bc.postMessage({ ...payload, _senderId: this.playerId });
+          } catch (e) {}
+        }
+      }
+
+      createRoom() {
+        this.syncNameFromInput();
+        const code = 'WORA' + Math.floor(10 + Math.random() * 89);
+        this.roomCode = code;
+        this.isHost = true;
+
+        const roomObj = {
+          code,
+          hostId: this.playerId,
+          status: 'LOBBY',
+          level: state.level,
+          players: {
+            [this.playerId]: {
+              id: this.playerId,
+              name: this.playerName,
+              role: this.myRole,
+              score: 0,
+              isHost: true
+            }
+          }
+        };
+        this.roomsCatalog[code] = roomObj;
+        document.getElementById('input-room-code').value = code;
+
+        this.sendRaw({
+          type: 'CREATE_ROOM',
+          roomCode: code,
+          playerId: this.playerId,
+          playerName: this.playerName,
+          role: this.myRole,
+          room: roomObj
+        });
+
+        this.refreshLobbyUI();
+      }
+
+      joinRoom(codeInput) {
+        this.syncNameFromInput();
+        const code = (codeInput || '').trim().toUpperCase();
+        if (!code) {
+          showLobbyAlert('Vui lòng nhập Mã Phòng để tham gia!');
+          return;
+        }
+        hideLobbyAlert();
+        this.roomCode = code;
+
+        // If room exists in local catalog, check free roles
+        const existing = this.roomsCatalog[code];
+        if (existing) {
+          this.isHost = (existing.hostId === this.playerId);
+          const takenByOthers = new Set(
+            Object.values(existing.players)
+              .filter((p) => p.id !== this.playerId)
+              .map((p) => p.role)
+          );
+          if (takenByOthers.has(this.myRole)) {
+            const free = ALL_ROLES.find((r) => !takenByOthers.has(r));
+            if (!free) {
+              showLobbyAlert(`Phòng ${code} đã đầy 5/5 người chơi!`);
+              return;
+            }
+            this.myRole = free;
+          }
+          existing.players[this.playerId] = {
+            id: this.playerId,
+            name: this.playerName,
+            role: this.myRole,
+            score: 0,
+            isHost: this.isHost
+          };
+        } else {
+          // Create or join optimistically on WebSocket / BroadcastChannel
+          this.isHost = false;
+          this.roomsCatalog[code] = {
+            code,
+            hostId: this.playerId,
+            status: 'LOBBY',
+            level: 1,
+            players: {
+              [this.playerId]: {
+                id: this.playerId,
+                name: this.playerName,
+                role: this.myRole,
+                score: 0,
+                isHost: false
+              }
+            }
+          };
+        }
+
+        document.getElementById('input-room-code').value = code;
+        this.sendRaw({
+          type: 'JOIN_ROOM',
+          roomCode: code,
+          playerId: this.playerId,
+          playerName: this.playerName,
+          role: this.myRole
+        });
+
+        this.refreshLobbyUI();
+      }
+
+      selectRole(roleName) {
+        if (!ALL_ROLES.includes(roleName)) return;
+        this.syncNameFromInput();
+
+        const room = this.roomsCatalog[this.roomCode];
+        if (room) {
+          const takenByOther = Object.values(room.players).find(
+            (p) => p.id !== this.playerId && p.role === roleName
+          );
+          if (takenByOther) {
+            showLobbyAlert(`Vai trò ${roleName} đã được chọn bởi "${takenByOther.name}"!`);
+            return;
+          }
+          if (room.players[this.playerId]) {
+            room.players[this.playerId].role = roleName;
+            room.players[this.playerId].name = this.playerName;
+          }
+        }
+
+        hideLobbyAlert();
+        this.myRole = roleName;
+
+        if (this.roomCode) {
+          this.sendRaw({
+            type: 'SELECT_ROLE',
+            roomCode: this.roomCode,
+            playerId: this.playerId,
+            playerName: this.playerName,
+            role: this.myRole
+          });
+        }
+        this.refreshLobbyUI();
+      }
+
+      syncNameFromInput() {
+        const el = document.getElementById('input-player-name');
+        const val = (el && el.value ? el.value.trim() : '') || 'WoraPlayer';
+        this.playerName = val.slice(0, 16);
+        localStorage.setItem('pacman3d_player_name', this.playerName);
+        if (this.roomCode && this.roomsCatalog[this.roomCode] && this.roomsCatalog[this.roomCode].players[this.playerId]) {
+          this.roomsCatalog[this.roomCode].players[this.playerId].name = this.playerName;
+        }
+      }
+
+      getRolePlayersMap() {
+        const map = {};
+        const room = this.roomsCatalog[this.roomCode];
+        if (room && room.players) {
+          Object.values(room.players).forEach((p) => {
+            map[p.role] = p;
+          });
+        } else {
+          map[this.myRole] = {
+            id: this.playerId,
+            name: this.playerName,
+            role: this.myRole,
+            score: state.score
+          };
+        }
+        return map;
+      }
+
+      isRoleControlledByRemoteHuman(roleName) {
+        if (roleName === this.myRole) return false;
+        const room = this.roomsCatalog[this.roomCode];
+        if (!room || !room.players) return false;
+        return Object.values(room.players).some(
+          (p) => p.id !== this.playerId && p.role === roleName
+        );
+      }
+
+      broadcastMyPosition() {
+        if (!this.roomCode) return;
+        const now = performance.now();
+        if (now - this.lastSyncSent < 30) return;
+        this.lastSyncSent = now;
+
+        const entity = getMyControlledEntity();
+        if (!entity) return;
+
+        this.sendRaw({
+          type: 'PLAYER_SYNC',
+          roomCode: this.roomCode,
+          playerId: this.playerId,
+          playerName: this.playerName,
+          role: this.myRole,
+          gx: entity.gx,
+          gz: entity.gz,
+          dirName: entity.dir ? entity.dir.name : 'NONE',
+          dashTimer: entity.dashTimer || 0,
+          score: state.score
+        });
+      }
+
+      broadcastWorldEvent(eventData) {
+        if (!this.roomCode) return;
+        this.sendRaw({
+          type: 'WORLD_EVENT',
+          roomCode: this.roomCode,
+          playerId: this.playerId,
+          ...eventData
+        });
+      }
+
+      handleIncomingMessage(data, source) {
+        if (!data || data._senderId === this.playerId) return;
+
+        if (data.type === 'DISCOVER_ROOMS' && source === 'bc') {
+          if (this.roomCode && this.roomsCatalog[this.roomCode]) {
+            this.bc.postMessage({
+              type: 'ROOM_STATE',
+              room: this.roomsCatalog[this.roomCode],
+              _senderId: this.playerId
+            });
+          }
+        }
+
+        else if (data.type === 'CREATE_ROOM' && source === 'bc') {
+          if (data.room) {
+            this.roomsCatalog[data.room.code] = data.room;
+            this.refreshLobbyUI();
+          }
+        }
+
+        else if (data.type === 'JOIN_ROOM' && source === 'bc') {
+          const room = this.roomsCatalog[data.roomCode];
+          if (room) {
+            const taken = new Set(
+              Object.values(room.players)
+                .filter((p) => p.id !== data.playerId)
+                .map((p) => p.role)
+            );
+            let assignedRole = data.role;
+            if (taken.has(assignedRole)) {
+              assignedRole = ALL_ROLES.find((r) => !taken.has(r)) || assignedRole;
+            }
+            room.players[data.playerId] = {
+              id: data.playerId,
+              name: data.playerName,
+              role: assignedRole,
+              score: 0,
+              isHost: room.hostId === data.playerId
+            };
+            if (this.isHost && this.roomCode === data.roomCode) {
+              this.sendRaw({ type: 'ROOM_STATE', room });
+            }
+            this.refreshLobbyUI();
+          }
+        }
+
+        else if (data.type === 'SELECT_ROLE' && source === 'bc') {
+          const room = this.roomsCatalog[data.roomCode];
+          if (room && room.players[data.playerId]) {
+            room.players[data.playerId].role = data.role;
+            room.players[data.playerId].name = data.playerName;
+            this.refreshLobbyUI();
+          }
+        }
+
+        else if (data.type === 'ROOM_STATE' && data.room) {
+          this.roomsCatalog[data.room.code] = data.room;
+          if (this.roomCode === data.room.code) {
+            const me = data.room.players[this.playerId];
+            if (me) {
+              this.myRole = me.role;
+              this.isHost = (data.room.hostId === this.playerId);
+            }
+          }
+          this.refreshLobbyUI();
+        }
+
+        else if (data.type === 'ROOM_LIST' && Array.isArray(data.rooms)) {
+          this.renderActiveRoomsPills(data.rooms);
+        }
+
+        else if (data.type === 'START_MATCH') {
+          if (data.room && data.room.code === this.roomCode) {
+            this.roomsCatalog[this.roomCode] = data.room;
+            startMatchFromLobby(false);
+          }
+        }
+
+        else if (data.type === 'PLAYER_SYNC') {
+          if (data.roomCode && data.roomCode !== this.roomCode) return;
+          if (data.playerId === this.playerId) return;
+
+          const room = this.roomsCatalog[this.roomCode];
+          if (room && room.players[data.playerId]) {
+            room.players[data.playerId].score = data.score || 0;
+            room.players[data.playerId].name = data.playerName || room.players[data.playerId].name;
+          }
+
+          if (data.role === 'pacman' && this.myRole !== 'pacman') {
+            pacman.gx = data.gx;
+            pacman.gz = data.gz;
+            pacman.dir = DIRS[data.dirName] || DIRS.NONE;
+            pacman.dashTimer = data.dashTimer || 0;
+          } else if (data.role !== 'pacman' && this.myRole !== data.role) {
+            const g = ghosts.find((gh) => gh.name === data.role);
+            if (g) {
+              g.gx = data.gx;
+              g.gz = data.gz;
+              g.tileX = Math.round(data.gx);
+              g.tileZ = Math.round(data.gz);
+              g.dir = DIRS[data.dirName] || DIRS.LEFT;
+              g.dashTimer = data.dashTimer || 0;
+              g.releaseTimer = 0;
+              g.inHouse = false;
+            }
+          }
+        }
+
+        else if (data.type === 'WORLD_EVENT') {
+          if (data.roomCode && data.roomCode !== this.roomCode) return;
+          if (data.event === 'PELLET_EATEN') {
+            const pObj = activePellets[data.gz] && activePellets[data.gz][data.gx];
+            if (pObj && !pObj.eaten) {
+              pObj.eaten = true;
+              pObj.mesh.visible = false;
+              state.pelletsRemaining = Math.max(0, state.pelletsRemaining - 1);
+              if (pObj.isPower) {
+                activatePowerMode();
+              }
+              updateHUD();
+            }
+          } else if (data.event === 'GHOST_EATEN') {
+            const g = ghosts.find((gh) => gh.name === data.ghostName);
+            if (g) {
+              g.state = 'EATEN';
+              sfx.eatGhost();
+            }
+          } else if (data.event === 'PACMAN_HIT') {
+            handlePacManHit(true);
+          }
+        }
+
+        else if (data.type === 'ERROR') {
+          showLobbyAlert(data.message || 'Lỗi kết nối phòng!');
+        }
+      }
+
+      renderActiveRoomsPills(roomSummaries) {
+        const listEl = document.getElementById('active-rooms-list');
+        if (!roomSummaries || roomSummaries.length === 0) {
+          listEl.textContent = 'Chưa có phòng nào (Hãy nhấn Tạo Phòng Mới)';
+          return;
+        }
+        listEl.innerHTML = '';
+        roomSummaries.forEach((r) => {
+          const btn = document.createElement('button');
+          btn.className = 'room-pill-btn';
+          btn.textContent = `#${r.code} (${r.playerCount}/5)`;
+          btn.onclick = () => this.joinRoom(r.code);
+          listEl.appendChild(btn);
+        });
+      }
+
+      refreshLobbyUI() {
+        const rolePlayers = this.getRolePlayersMap();
+
+        // Update Role Cards
+        document.querySelectorAll('.role-card').forEach((card) => {
+          const role = card.getAttribute('data-role');
+          const ownerEl = document.getElementById(`owner-${role}`);
+          const occupant = rolePlayers[role];
+          const isMe = (this.myRole === role);
+
+          card.classList.toggle('selected', isMe);
+          card.classList.toggle('taken', Boolean(occupant && !isMe));
+
+          if (isMe) {
+            ownerEl.textContent = `★ ${this.playerName} (Bạn)`;
+            ownerEl.style.color = '#b45309';
+          } else if (occupant) {
+            ownerEl.textContent = `👤 ${occupant.name}`;
+            ownerEl.style.color = '#15803d';
+          } else {
+            ownerEl.textContent = '🤖 AI Bot';
+            ownerEl.style.color = '#71717a';
+          }
+        });
+
+        document.getElementById('selected-role-hint').textContent =
+          `Đang chọn: ${this.myRole.toUpperCase()} (${this.myRole === 'pacman' ? 'Người Thu Thập' : 'Bóng Ma Săn Đuổi'})`;
+
+        // Update Room Box
+        const codeEl = document.getElementById('lobby-current-code');
+        const copyBtn = document.getElementById('btn-copy-code');
+        const slotsList = document.getElementById('lobby-slots-list');
+        const statusBadge = document.getElementById('room-status-badge');
+
+        if (this.roomCode) {
+          codeEl.textContent = `#${this.roomCode}`;
+          copyBtn.style.display = 'inline-block';
+          statusBadge.textContent = this.isHost ? `👑 Chủ phòng #${this.roomCode}` : `✅ Đã vào phòng #${this.roomCode}`;
+        } else {
+          codeEl.textContent = 'CHẾ ĐỘ ĐƠN / CHƯA TẠO MÃ';
+          copyBtn.style.display = 'none';
+          statusBadge.textContent = 'Chế độ: Chơi ngay hoặc Tạo phòng';
+        }
+
+        slotsList.innerHTML = '';
+        ALL_ROLES.forEach((role) => {
+          const occupant = rolePlayers[role];
+          const chip = document.createElement('div');
+          chip.className = 'slot-chip' + (occupant ? ' human' : '');
+          chip.innerHTML = `<span class="role-dot" style="background:${ROLE_COLORS[role]}; width:8px; height:8px; border-radius:50%; display:inline-block;"></span>` +
+            `<span><strong>${role}:</strong> ${occupant ? occupant.name : 'AI Bot'}</span>`;
+          slotsList.appendChild(chip);
+        });
+
+        // Update Active Rooms from local catalog
+        const localSummaries = Object.values(this.roomsCatalog).map((r) => ({
+          code: r.code,
+          playerCount: Object.keys(r.players || {}).length
+        }));
+        if (localSummaries.length > 0) {
+          this.renderActiveRoomsPills(localSummaries);
+        }
+
+        // Update Top & Left HUD
+        document.getElementById('hud-room-code').textContent = this.roomCode ? `#${this.roomCode}` : 'SOLO';
+        document.getElementById('hud-role-label').textContent = this.myRole.toUpperCase();
+        document.getElementById('skill-bar-title').textContent =
+          this.myRole === 'pacman' ? '⚡ Lướt nhanh (Space)' : `⚡ Tăng tốc ${this.myRole} (Space)`;
+
+        const hudPlayersEl = document.getElementById('room-hud-players');
+        hudPlayersEl.innerHTML = '';
+        let humanCount = 0;
+        ALL_ROLES.forEach((role) => {
+          const p = rolePlayers[role];
+          if (p) humanCount++;
+          const row = document.createElement('div');
+          row.className = 'room-player-row';
+          row.innerHTML = `
+            <span>
+              <span class="badge-online" style="background:${ROLE_COLORS[role]}"></span>
+              ${role}: <strong>${p ? p.name : 'AI Bot'}</strong>
+            </span>
+            <span>${p ? (p.score || 0) : ''}</span>
+          `;
+          hudPlayersEl.appendChild(row);
+        });
+        document.getElementById('room-hud-count').textContent = `${humanCount}/5 Người`;
+      }
+    }
+
+    function showLobbyAlert(msg) {
+      const el = document.getElementById('lobby-alert');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+
+    function hideLobbyAlert() {
+      const el = document.getElementById('lobby-alert');
+      el.style.display = 'none';
+    }
+
+    const mp = new MultiplayerManager();
+
+    // Helper: Get the entity currently controlled by the local player
+    function getMyControlledEntity() {
+      if (mp.myRole === 'pacman') return pacman;
+      return ghosts.find((g) => g.name === mp.myRole) || pacman;
+    }
+
+    function getMyControlledMeshRoot() {
+      if (mp.myRole === 'pacman') return pacModel.root;
+      const g = ghosts.find((gh) => gh.name === mp.myRole);
+      return g ? g.mesh.root : pacModel.root;
+    }
+
+    // =========================================================================
+    // 8. PELLETS & FLOATING SCORE POPUPS
+    // =========================================================================
+    let activePellets = [];
+    const sharedDotGeo = new THREE.SphereGeometry(0.22, 10, 10);
+    const sharedPowerGeo = new THREE.OctahedronGeometry(0.48, 1);
+
+    function spawnFloatingScore(text, worldPos, color = '#facc15') {
+      try {
+        const vec = worldPos.clone();
+        vec.y += 1.6;
+        vec.project(camera);
+        const x = (vec.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (-(vec.y * 0.5) + 0.5) * window.innerHeight;
+
+        const el = document.createElement('div');
+        el.className = 'score-popup';
+        el.style.left = `${x}px`;
+        el.style.top = `${y}px`;
+        el.style.color = color;
+        el.textContent = text;
+        document.getElementById('floating-popups').appendChild(el);
+        setTimeout(() => el.remove(), 950);
+      } catch (e) {}
+    }
+
+    function populatePellets() {
+      while (pelletsGroup.children.length > 0) {
+        pelletsGroup.remove(pelletsGroup.children[0]);
+      }
+      activePellets = [];
+      state.pelletsRemaining = 0;
+
+      for (let gz = 0; gz < GRID_SIZE; gz++) {
+        activePellets[gz] = [];
+        for (let gx = 0; gx < GRID_SIZE; gx++) {
+          const cell = MAZE_TEMPLATE[gz][gx];
+          const pos = gridToWorld(gx, gz);
+          if (cell === 0 || cell === 2) {
+            const isPower = cell === 2;
+            const mesh = new THREE.Mesh(
+              isPower ? sharedPowerGeo : sharedDotGeo,
+              isPower ? materials.powerPellet : materials.pellet
+            );
+            mesh.position.set(pos.x, isPower ? 0.65 : 0.42, pos.z);
+            pelletsGroup.add(mesh);
+            activePellets[gz][gx] = { mesh, isPower, eaten: false };
+            state.pelletsRemaining++;
+          } else {
+            activePellets[gz][gx] = null;
+          }
+        }
+      }
+      updateHUD();
+    }
+
+    // =========================================================================
+    // 9. WALKABILITY & COLLISION ENGINE (Supports Human Pac-Man & Human Ghosts!)
+    // =========================================================================
+    function wrapGridX(gx) {
+      if (gx < 0) return GRID_SIZE - 1;
+      if (gx >= GRID_SIZE) return 0;
+      return gx;
+    }
+
+    function isTileWalkableForPacMan(gx, gz) {
+      if (gz < 0 || gz >= GRID_SIZE) return false;
+      if (gz === 10 && (gx < 0 || gx >= GRID_SIZE)) return true;
+      if (gx < 0 || gx >= GRID_SIZE) return false;
+      const cell = MAZE_TEMPLATE[gz][gx];
+      return cell === 0 || cell === 2 || cell === 3;
+    }
+
+    function isTileWalkableForGhost(gx, gz, allowHouseAndDoor) {
+      if (gz < 0 || gz >= GRID_SIZE) return false;
+      if (gz === 10 && (gx < 0 || gx >= GRID_SIZE)) return true;
+      if (gx < 0 || gx >= GRID_SIZE) return false;
+      const cell = MAZE_TEMPLATE[gz][gx];
+      if (cell === 1 || cell === 6) return false;
+      if ((cell === 4 || cell === 5) && !allowHouseAndDoor) return false;
+      return true;
+    }
+
+    function getGhostTargetTile(g) {
+      if (g.state === 'EATEN') return { x: 10, z: 8 };
+      if (g.inHouse) return { x: 10, z: 8 };
+
+      const cycle = state.elapsedTime % 27;
+      if (cycle < 5 && g.state === 'NORMAL') {
+        return { x: g.scatterX, z: g.scatterZ };
+      }
+
+      if (g.name === 'Blinky') {
+        return { x: Math.round(pacman.gx), z: Math.round(pacman.gz) };
+      } else if (g.name === 'Pinky') {
+        return {
+          x: Math.round(pacman.gx) + pacman.dir.x * 4,
+          z: Math.round(pacman.gz) + pacman.dir.z * 4
+        };
+      } else if (g.name === 'Inky') {
+        const blinky = ghosts[0];
+        const pivotX = Math.round(pacman.gx) + pacman.dir.x * 2;
+        const pivotZ = Math.round(pacman.gz) + pacman.dir.z * 2;
+        return {
+          x: pivotX + (pivotX - Math.round(blinky.gx)),
+          z: pivotZ + (pivotZ - Math.round(blinky.gz))
+        };
+      } else {
+        const dist = Math.hypot(g.gx - pacman.gx, g.gz - pacman.gz);
+        if (dist > 6) {
+          return { x: Math.round(pacman.gx), z: Math.round(pacman.gz) };
+        }
+        return { x: g.scatterX, z: g.scatterZ };
+      }
+    }
+
+    function chooseNextGhostStep(g, targetOverride = null) {
+      const cx = g.tileX;
+      const cz = g.tileZ;
+
+      if (g.inHouse && cx === 10 && cz <= 8) {
+        g.inHouse = false;
+      }
+      if (g.state === 'EATEN' && cx === 10 && cz === 8) {
+        g.state = 'NORMAL';
+        g.mesh.dome.visible = true;
+        g.mesh.torso.visible = true;
+        g.mesh.skirtGroup.visible = true;
+      }
+
+      const allowDoor = g.inHouse || g.state === 'EATEN';
+
+      const candidates = [];
+      for (let i = 0; i < CARDINAL_DIRS.length; i++) {
+        const d = CARDINAL_DIRS[i];
+        if (d.x === -g.dir.x && d.z === -g.dir.z) continue;
+        let nx = cx + d.x;
+        let nz = cz + d.z;
+        if (nz === 10) nx = wrapGridX(nx);
+        if (isTileWalkableForGhost(nx, nz, allowDoor)) {
+          candidates.push({ dir: d, nx, nz });
+        }
+      }
+
+      if (candidates.length === 0) {
+        const rev = { name: 'REV', x: -g.dir.x, z: -g.dir.z, angle: g.dir.angle + Math.PI };
+        let nx = cx + rev.x;
+        let nz = cz + rev.z;
+        if (nz === 10) nx = wrapGridX(nx);
+        if (isTileWalkableForGhost(nx, nz, allowDoor)) {
+          candidates.push({ dir: rev, nx, nz });
+        } else {
+          for (let i = 0; i < CARDINAL_DIRS.length; i++) {
+            const d = CARDINAL_DIRS[i];
+            let tx = cx + d.x;
+            let tz = cz + d.z;
+            if (tz === 10) tx = wrapGridX(tx);
+            if (isTileWalkableForGhost(tx, tz, true)) {
+              candidates.push({ dir: d, nx: tx, nz: tz });
+              break;
+            }
+          }
+        }
+      }
+
+      if (candidates.length === 0) {
+        g.nextTileX = cx;
+        g.nextTileZ = cz;
+        return;
+      }
+
+      let chosen = candidates[0];
+
+      if (g.state === 'FRIGHTENED' && !g.inHouse && !targetOverride) {
+        let maxScore = -Infinity;
+        candidates.forEach((c) => {
+          const dist = Math.hypot(c.nx - pacman.gx, c.nz - pacman.gz) + Math.random() * 2.0;
+          if (dist > maxScore) {
+            maxScore = dist;
+            chosen = c;
+          }
+        });
+      } else {
+        const target = targetOverride || getGhostTargetTile(g);
+        let minDist = Infinity;
+        candidates.forEach((c) => {
+          const dist = Math.hypot(c.nx - target.x, c.nz - target.z);
+          if (dist < minDist) {
+            minDist = dist;
+            chosen = c;
+          }
+        });
+      }
+
+      g.dir = chosen.dir;
+      g.nextTileX = chosen.nx;
+      g.nextTileZ = chosen.nz;
+    }
+
+    function resetPositions() {
+      pacman.gx = 10;
+      pacman.gz = 16;
+      pacman.dir = DIRS.NONE;
+      pacman.nextDir = DIRS.NONE;
+      pacman.dashTimer = 0;
+      pacman.dashCooldown = 0;
+
+      const pPos = gridToWorld(pacman.gx, pacman.gz);
+      pacModel.root.position.set(pPos.x, 0, pPos.z);
+      pacModel.bodyGroup.rotation.y = 0;
+      pacGlowLight.position.set(pPos.x, 2.2, pPos.z);
+
+      ghosts.forEach((g, idx) => {
+        const spec = GHOST_SPECS[idx];
+        const isHumanGhost = (mp.myRole === g.name) || mp.isRoleControlledByRemoteHuman(g.name);
+        // Human-controlled ghosts spawn right outside the ghost house door (10, 8) ready for immediate action!
+        const spawnX = isHumanGhost ? (9 + (idx % 3)) : spec.startX;
+        const spawnZ = isHumanGhost ? 8 : spec.startZ;
+
+        g.tileX = spawnX;
+        g.tileZ = spawnZ;
+        g.nextTileX = spawnX;
+        g.nextTileZ = spawnZ;
+        g.progress = 0;
+        g.gx = spawnX;
+        g.gz = spawnZ;
+        g.dir = idx === 0 ? DIRS.LEFT : DIRS.UP;
+        g.nextDir = DIRS.NONE;
+        g.dashTimer = 0;
+        g.dashCooldown = 0;
+        g.state = 'NORMAL';
+        g.inHouse = spawnZ >= 9;
+        g.releaseTimer = isHumanGhost ? 0 : (spec.releaseDelay / Math.pow(1.12, state.level - 1));
+        g.mesh.dome.visible = true;
+        g.mesh.torso.visible = true;
+        g.mesh.skirtGroup.visible = true;
+        g.mesh.mat.color.setHex(g.baseColor);
+        g.mesh.mat.emissive.setHex(0x000000);
+        if (!isHumanGhost) chooseNextGhostStep(g);
+        const wPos = gridToWorld(g.gx, g.gz);
+        g.mesh.root.position.set(wPos.x, 0, wPos.z);
+      });
+
+      state.frightenedTimer = 0;
+      document.getElementById('power-pill-box').style.display = 'none';
+    }
+
+    function activatePowerMode() {
+      state.frightenedTimer = Math.max(3.5, state.frightenedDuration - (state.level - 1) * 0.6);
+      state.ghostCombo = 0;
+      sfx.powerPellet();
+      const wPos = gridToWorld(pacman.gx, pacman.gz);
+      spawnParticles(wPos.x, 0.6, wPos.z, 0x38bdf8, 14, 1.1);
+      spawnFloatingScore('POWER!', pacModel.root.position, '#38bdf8');
+      ghosts.forEach((g) => {
+        if (g.state !== 'EATEN') {
+          g.state = 'FRIGHTENED';
+        }
+      });
+      document.getElementById('power-pill-box').style.display = 'flex';
+    }
+
+    // =========================================================================
+    // 10. PAC-MAN UPDATER (Human Controlled or AI Bot if Player chose Ghost!)
+    // =========================================================================
+    function updatePacMan(dt) {
+      if (pacman.dashCooldown > 0) {
+        pacman.dashCooldown = Math.max(0, pacman.dashCooldown - dt);
+      }
+      if (pacman.dashTimer > 0) {
+        pacman.dashTimer = Math.max(0, pacman.dashTimer - dt);
+        if (Math.random() < 0.5) {
+          const wPos = gridToWorld(pacman.gx, pacman.gz);
+          spawnParticles(wPos.x, 0.4, wPos.z, 0xfef08a, 1, 0.5);
+        }
+      }
+
+      const speedMult = pacman.dashTimer > 0 ? 1.8 : 1.0;
+      const currentSpeed = (pacman.baseSpeed + (state.level - 1) * 0.2) * speedMult;
+
+      const cx = Math.round(pacman.gx);
+      const cz = Math.round(pacman.gz);
+
+      const isRemotePacMan = mp.isRoleControlledByRemoteHuman('pacman');
+      const isBotPacMan = (mp.myRole !== 'pacman') && !isRemotePacMan;
+
+      // If local player chose a Ghost and no remote human is playing Pac-Man, smart AI drives Pac-Man!
+      if (isBotPacMan) {
+        const distToCenter = Math.hypot(pacman.gx - cx, pacman.gz - cz);
+        if (pacman.dir === DIRS.NONE || distToCenter < 0.18) {
+          const validDirs = CARDINAL_DIRS.filter((d) => {
+            if (pacman.dir !== DIRS.NONE && d.x === -pacman.dir.x && d.z === -pacman.dir.z) return false;
+            return isTileWalkableForPacMan(cx + d.x, cz + d.z);
+          });
+          const pool = validDirs.length > 0 ? validDirs : CARDINAL_DIRS.filter((d) => isTileWalkableForPacMan(cx + d.x, cz + d.z));
+          if (pool.length > 0) {
+            // Pick direction that maximizes distance from nearest dangerous ghost + seeks pellets
+            let bestDir = pool[0];
+            let bestScore = -Infinity;
+            pool.forEach((d) => {
+              const nx = cx + d.x;
+              const nz = cz + d.z;
+              let minGhostDist = Infinity;
+              ghosts.forEach((g) => {
+                const gd = Math.hypot(nx - g.gx, nz - g.gz);
+                if (gd < minGhostDist) minGhostDist = gd;
+              });
+              const hasPellet = (activePellets[nz] && activePellets[nz][nx] && !activePellets[nz][nx].eaten) ? 2.5 : 0;
+              const score = (state.frightenedTimer > 0 ? -minGhostDist : minGhostDist * 1.4) + hasPellet + Math.random() * 0.6;
+              if (score > bestScore) {
+                bestScore = score;
+                bestDir = d;
+              }
+            });
+            pacman.nextDir = bestDir;
+          }
+        }
+      }
+
+      if (!isRemotePacMan) {
+        // 1. Handle Buffered Direction Input
+        if (pacman.nextDir !== DIRS.NONE) {
+          const isReverse = (
+            pacman.dir !== DIRS.NONE &&
+            pacman.dir.x === -pacman.nextDir.x &&
+            pacman.dir.z === -pacman.nextDir.z
+          );
+          const canMoveNext = isTileWalkableForPacMan(cx + pacman.nextDir.x, cz + pacman.nextDir.z);
+
+          if (isReverse && canMoveNext) {
+            pacman.dir = pacman.nextDir;
+            pacman.nextDir = DIRS.NONE;
+          } else if (canMoveNext) {
+            const distToCenter = Math.hypot(pacman.gx - cx, pacman.gz - cz);
+            if (distToCenter < 0.38) {
+              if (pacman.nextDir.x !== 0) pacman.gz = cz;
+              if (pacman.nextDir.z !== 0) pacman.gx = cx;
+              pacman.dir = pacman.nextDir;
+              pacman.nextDir = DIRS.NONE;
+            }
+          }
+        }
+
+        // 2. Move along active direction with strict tile-center wall clamping
+        if (pacman.dir !== DIRS.NONE) {
+          const step = currentSpeed * dt;
+          let nextX = pacman.gx + pacman.dir.x * step;
+          let nextZ = pacman.gz + pacman.dir.z * step;
+
+          if (pacman.dir.x !== 0) nextZ = cz;
+          else if (pacman.dir.z !== 0) nextX = cx;
+
+          if (cz === 10 && (nextX < 0 || nextX >= GRID_SIZE - 1)) {
+            if (nextX < -0.45) nextX += GRID_SIZE;
+            if (nextX > GRID_SIZE - 0.55) nextX -= GRID_SIZE;
+            pacman.gx = nextX;
+            pacman.gz = 10;
+          } else {
+            const nextTileWalkable = isTileWalkableForPacMan(cx + pacman.dir.x, cz + pacman.dir.z);
+            if (!nextTileWalkable) {
+              if (pacman.dir.x > 0 && nextX > cx) nextX = cx;
+              if (pacman.dir.x < 0 && nextX < cx) nextX = cx;
+              if (pacman.dir.z > 0 && nextZ > cz) nextZ = cz;
+              if (pacman.dir.z < 0 && nextZ < cz) nextZ = cz;
+            }
+            pacman.gx = nextX;
+            pacman.gz = nextZ;
+          }
+        }
+      }
+
+      if (pacman.dir !== DIRS.NONE) {
+        pacman.mouthPhase += dt * 18 * speedMult;
+        const chompAngle = (Math.sin(pacman.mouthPhase) * 0.5 + 0.5) * 0.62;
+        pacModel.upperJaw.rotation.x = -chompAngle;
+        pacModel.lowerJaw.rotation.x = chompAngle;
+        pacModel.bodyGroup.position.y = 0.85 + Math.abs(Math.sin(pacman.mouthPhase * 0.5)) * 0.15;
+        pacModel.bodyGroup.rotation.y = pacman.dir.angle;
+      } else {
+        pacModel.upperJaw.rotation.x = -0.15;
+        pacModel.lowerJaw.rotation.x = 0.15;
+      }
+
+      const wPos = gridToWorld(pacman.gx, pacman.gz);
+      pacModel.root.position.set(wPos.x, 0, wPos.z);
+      pacGlowLight.position.set(wPos.x, 2.2, wPos.z);
+
+      // 3. Check Pellet Collection
+      const tileX = Math.round(pacman.gx);
+      const tileZ = Math.round(pacman.gz);
+      if (tileZ >= 0 && tileZ < GRID_SIZE && tileX >= 0 && tileX < GRID_SIZE) {
+        const pObj = activePellets[tileZ] && activePellets[tileZ][tileX];
+        if (pObj && !pObj.eaten) {
+          pObj.eaten = true;
+          pObj.mesh.visible = false;
+          state.pelletsRemaining--;
+
+          mp.broadcastWorldEvent({ event: 'PELLET_EATEN', gx: tileX, gz: tileZ });
+
+          if (pObj.isPower) {
+            if (mp.myRole === 'pacman') state.score += 50;
+            activatePowerMode();
+          } else {
+            if (mp.myRole === 'pacman') state.score += 10;
+            sfx.chomp();
+            spawnParticles(wPos.x, 0.4, wPos.z, 0xfacc15, 4, 0.5);
+          }
+
+          if (!state.fruitSpawnedThisLevel && state.pelletsRemaining === 110) {
+            state.fruitSpawnedThisLevel = true;
+            state.fruitActive = true;
+            state.fruitTimer = 12.0;
+            const fPos = gridToWorld(10, 12);
+            fruitMesh.position.set(fPos.x, 0.25, fPos.z);
+            fruitMesh.visible = true;
+          }
+
+          if (state.score > state.highScore) {
+            state.highScore = state.score;
+            localStorage.setItem('pacman3d_worawork_high', String(state.highScore));
+          }
+          updateHUD();
+
+          if (state.pelletsRemaining <= 0) {
+            handleLevelClear();
+          }
+        }
+      }
+
+      // 4. Check Bonus Fruit Collection
+      if (state.fruitActive) {
+        state.fruitTimer -= dt;
+        fruitMesh.rotation.y += dt * 2.5;
+        fruitMesh.position.y = 0.25 + Math.sin(state.elapsedTime * 5) * 0.15;
+        if (Math.hypot(pacman.gx - 10, pacman.gz - 12) < 0.7) {
+          state.fruitActive = false;
+          fruitMesh.visible = false;
+          const fruitBonus = 300 * state.level;
+          if (mp.myRole === 'pacman') state.score += fruitBonus;
+          sfx.eatFruit();
+          spawnParticles(fruitMesh.position.x, 0.6, fruitMesh.position.z, 0xef4444, 14, 1.2);
+          spawnFloatingScore(`+${fruitBonus} CHERRY!`, fruitMesh.position, '#ef4444');
+          updateHUD();
+        } else if (state.fruitTimer <= 0) {
+          state.fruitActive = false;
+          fruitMesh.visible = false;
+        }
+      }
+    }
+
+    // =========================================================================
+    // 11. GHOSTS UPDATER (Supports Human-Controlled Ghost & AI Ghosts)
+    // =========================================================================
+    function updateHumanControlledGhost(g, dt) {
+      if (g.dashCooldown > 0) g.dashCooldown = Math.max(0, g.dashCooldown - dt);
+      if (g.dashTimer > 0) {
+        g.dashTimer = Math.max(0, g.dashTimer - dt);
+        if (Math.random() < 0.5) {
+          const wPos = gridToWorld(g.gx, g.gz);
+          spawnParticles(wPos.x, 0.4, wPos.z, g.baseColor, 1, 0.5);
+        }
+      }
+
+      const speedMult = g.dashTimer > 0 ? 1.75 : (g.state === 'FRIGHTENED' ? 0.68 : 1.05);
+      const currentSpeed = (4.8 + (state.level - 1) * 0.2) * speedMult;
+
+      const cx = Math.round(g.gx);
+      const cz = Math.round(g.gz);
+
+      if (g.inHouse && cx === 10 && cz <= 8) g.inHouse = false;
+
+      const allowDoor = g.inHouse || g.state === 'EATEN';
+
+      if (g.nextDir !== DIRS.NONE) {
+        const isReverse = (
+          g.dir !== DIRS.NONE &&
+          g.dir.x === -g.nextDir.x &&
+          g.dir.z === -g.nextDir.z
+        );
+        const canMoveNext = isTileWalkableForGhost(cx + g.nextDir.x, cz + g.nextDir.z, allowDoor);
+
+        if (isReverse && canMoveNext) {
+          g.dir = g.nextDir;
+          g.nextDir = DIRS.NONE;
+        } else if (canMoveNext) {
+          const distToCenter = Math.hypot(g.gx - cx, g.gz - cz);
+          if (distToCenter < 0.38) {
+            if (g.nextDir.x !== 0) g.gz = cz;
+            if (g.nextDir.z !== 0) g.gx = cx;
+            g.dir = g.nextDir;
+            g.nextDir = DIRS.NONE;
+          }
+        }
+      }
+
+      if (g.dir !== DIRS.NONE) {
+        const step = currentSpeed * dt;
+        let nextX = g.gx + g.dir.x * step;
+        let nextZ = g.gz + g.dir.z * step;
+
+        if (g.dir.x !== 0) nextZ = cz;
+        else if (g.dir.z !== 0) nextX = cx;
+
+        if (cz === 10 && (nextX < 0 || nextX >= GRID_SIZE - 1)) {
+          if (nextX < -0.45) nextX += GRID_SIZE;
+          if (nextX > GRID_SIZE - 0.55) nextX -= GRID_SIZE;
+          g.gx = nextX;
+          g.gz = 10;
+        } else {
+          const nextTileWalkable = isTileWalkableForGhost(cx + g.dir.x, cz + g.dir.z, allowDoor);
+          if (!nextTileWalkable) {
+            if (g.dir.x > 0 && nextX > cx) nextX = cx;
+            if (g.dir.x < 0 && nextX < cx) nextX = cx;
+            if (g.dir.z > 0 && nextZ > cz) nextZ = cz;
+            if (g.dir.z < 0 && nextZ < cz) nextZ = cz;
+          }
+          g.gx = nextX;
+          g.gz = nextZ;
+        }
+      }
+
+      g.tileX = Math.round(g.gx);
+      g.tileZ = Math.round(g.gz);
+    }
+
+    function updateGhosts(dt) {
+      if (state.frightenedTimer > 0) {
+        state.frightenedTimer = Math.max(0, state.frightenedTimer - dt);
+        const pct = (state.frightenedTimer / state.frightenedDuration) * 100;
+        document.getElementById('power-bar').style.width = `${Math.min(100, pct)}%`;
+        document.getElementById('power-time-text').textContent = `${state.frightenedTimer.toFixed(1)}s`;
+
+        if (state.frightenedTimer <= 0) {
+          document.getElementById('power-pill-box').style.display = 'none';
+          ghosts.forEach((g) => {
+            if (g.state === 'FRIGHTENED') g.state = 'NORMAL';
+          });
+        }
+      }
+
+      for (let idx = 0; idx < ghosts.length; idx++) {
+        const g = ghosts[idx];
+        const isLocalHumanGhost = (mp.myRole === g.name);
+        const isRemoteHumanGhost = mp.isRoleControlledByRemoteHuman(g.name);
+
+        if (!isLocalHumanGhost && !isRemoteHumanGhost && g.releaseTimer > 0) {
+          g.releaseTimer -= dt;
+          const wPos = gridToWorld(g.tileX, g.tileZ);
+          g.mesh.root.position.set(wPos.x, Math.sin(state.elapsedTime * 6 + idx) * 0.12, wPos.z);
+          continue;
+        }
+
+        if (g.state === 'EATEN') {
+          g.mesh.dome.visible = false;
+          g.mesh.torso.visible = false;
+          g.mesh.skirtGroup.visible = false;
+        } else {
+          g.mesh.dome.visible = true;
+          g.mesh.torso.visible = true;
+          g.mesh.skirtGroup.visible = true;
+          if (g.state === 'FRIGHTENED') {
+            const flash = state.frightenedTimer < 2.2 && Math.floor(state.elapsedTime * 8) % 2 === 0;
+            g.mesh.mat.color.setHex(flash ? 0xf8fafc : 0x1d4ed8);
+            g.mesh.mat.emissive.setHex(flash ? 0x94a3b8 : 0x1e3a8a);
+            g.mesh.mat.emissiveIntensity = 0.45;
+          } else {
+            g.mesh.mat.color.setHex(g.baseColor);
+            g.mesh.mat.emissive.setHex(state.themeMode === 1 ? g.baseColor : 0x000000);
+            g.mesh.mat.emissiveIntensity = state.themeMode === 1 ? 0.35 : 0;
+          }
+        }
+
+        if (isLocalHumanGhost && g.state !== 'EATEN') {
+          updateHumanControlledGhost(g, dt);
+        } else if (!isRemoteHumanGhost) {
+          let spd = 4.1 + (state.level - 1) * 0.22;
+          if (g.state === 'FRIGHTENED') spd *= 0.62;
+          if (g.state === 'EATEN') spd *= 2.05;
+
+          g.progress += spd * dt;
+          while (g.progress >= 1.0) {
+            g.progress -= 1.0;
+            g.tileX = g.nextTileX;
+            g.tileZ = g.nextTileZ;
+            chooseNextGhostStep(g);
+          }
+
+          const dx = g.nextTileX - g.tileX;
+          if (Math.abs(dx) > 1) {
+            g.gx = g.tileX;
+          } else {
+            g.gx = g.tileX + dx * g.progress;
+          }
+          g.gz = g.tileZ + (g.nextTileZ - g.tileZ) * g.progress;
+        }
+
+        const wPos = gridToWorld(g.gx, g.gz);
+        g.mesh.root.position.set(wPos.x, 0, wPos.z);
+        g.mesh.bodyGroup.position.y = Math.sin(state.elapsedTime * 7 + idx * 1.5) * 0.1;
+        g.mesh.skirtGroup.rotation.y += dt * 4.5;
+        g.mesh.bodyGroup.rotation.y = g.dir.angle;
+
+        // Collision check with Pac-Man
+        const distToPac = Math.hypot(g.gx - pacman.gx, g.gz - pacman.gz);
+        if (distToPac < 0.72) {
+          if (g.state === 'FRIGHTENED') {
+            g.state = 'EATEN';
+            g.tileX = Math.round(g.gx);
+            g.tileZ = Math.round(g.gz);
+            g.nextTileX = g.tileX;
+            g.nextTileZ = g.tileZ;
+            g.progress = 0;
+            chooseNextGhostStep(g);
+
+            state.ghostCombo++;
+            const pts = 200 * Math.pow(2, state.ghostCombo - 1);
+            if (mp.myRole === 'pacman') state.score += pts;
+            if (state.score > state.highScore) {
+              state.highScore = state.score;
+              localStorage.setItem('pacman3d_worawork_high', String(state.highScore));
+            }
+            sfx.eatGhost();
+            mp.broadcastWorldEvent({ event: 'GHOST_EATEN', ghostName: g.name });
+            spawnParticles(wPos.x, 0.8, wPos.z, 0x38bdf8, 16, 1.3);
+            spawnFloatingScore(`+${pts}!`, g.mesh.root.position, '#60a5fa');
+            updateHUD();
+          } else if (g.state === 'NORMAL') {
+            if (isLocalHumanGhost) {
+              state.score += 500;
+              if (state.score > state.highScore) {
+                state.highScore = state.score;
+                localStorage.setItem('pacman3d_worawork_high', String(state.highScore));
+              }
+              spawnFloatingScore('+500 BẮT ĐƯỢC PAC-MAN!', g.mesh.root.position, '#ef4444');
+            }
+            mp.broadcastWorldEvent({ event: 'PACMAN_HIT', ghostName: g.name });
+            handlePacManHit(false);
+            break;
+          }
+        }
+      }
+    }
+
+    // =========================================================================
+    // 12. CAMERA MODES (Follows Your Chosen Character in WoraWork Style!)
+    // =========================================================================
+    function updateCamera(dt) {
+      const targetRoot = getMyControlledMeshRoot();
+      const focusPos = targetRoot.position;
+
+      if (state.cameraMode === 0) {
+        const desiredPos = new THREE.Vector3(
+          focusPos.x * 0.68,
+          26.5,
+          focusPos.z * 0.68 + 18.5
+        );
+        camera.position.lerp(desiredPos, Math.min(1, dt * 7.5));
+        const desiredLook = new THREE.Vector3(focusPos.x * 0.55, 0, focusPos.z * 0.55 + 1.2);
+        cameraTarget.lerp(desiredLook, Math.min(1, dt * 9.0));
+        camera.lookAt(cameraTarget);
+      } else if (state.cameraMode === 1) {
+        const desiredPos = new THREE.Vector3(0, 48, 12);
+        camera.position.lerp(desiredPos, Math.min(1, dt * 6.0));
+        cameraTarget.lerp(new THREE.Vector3(0, 0, 0.5), Math.min(1, dt * 7.0));
+        camera.lookAt(cameraTarget);
+      } else {
+        const desiredPos = new THREE.Vector3(
+          focusPos.x * 0.4 + 22,
+          29,
+          focusPos.z * 0.4 + 22
+        );
+        camera.position.lerp(desiredPos, Math.min(1, dt * 6.0));
+        cameraTarget.lerp(new THREE.Vector3(focusPos.x * 0.35, 0, focusPos.z * 0.35), Math.min(1, dt * 7.0));
+        camera.lookAt(cameraTarget);
+      }
+    }
+
+    // =========================================================================
+    // 13. 2D RADAR MINIMAP RENDERER
+    // =========================================================================
+    function renderMinimap() {
+      const cellPx = minimapCanvas.width / GRID_SIZE;
+      minimapCtx.fillStyle = state.themeMode === 0 ? '#18181b' : '#090d16';
+      minimapCtx.fillRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+
+      for (let gz = 0; gz < GRID_SIZE; gz++) {
+        for (let gx = 0; gx < GRID_SIZE; gx++) {
+          const cell = MAZE_TEMPLATE[gz][gx];
+          if (cell === 1) {
+            minimapCtx.fillStyle = state.themeMode === 0 ? '#4ade80' : '#0284c7';
+            minimapCtx.fillRect(gx * cellPx, gz * cellPx, cellPx - 0.5, cellPx - 0.5);
+          } else {
+            const pObj = activePellets[gz] && activePellets[gz][gx];
+            if (pObj && !pObj.eaten) {
+              minimapCtx.fillStyle = pObj.isPower ? '#fef08a' : '#f59e0b';
+              const r = pObj.isPower ? 2.4 : 1.1;
+              minimapCtx.beginPath();
+              minimapCtx.arc((gx + 0.5) * cellPx, (gz + 0.5) * cellPx, r, 0, Math.PI * 2);
+              minimapCtx.fill();
+            }
+          }
+        }
+      }
+
+      minimapCtx.fillStyle = '#facc15';
+      minimapCtx.beginPath();
+      minimapCtx.arc((pacman.gx + 0.5) * cellPx, (pacman.gz + 0.5) * cellPx, 3.2, 0, Math.PI * 2);
+      minimapCtx.fill();
+
+      ghosts.forEach((g) => {
+        minimapCtx.fillStyle = g.state === 'FRIGHTENED' ? '#3b82f6' : g.cssColor;
+        minimapCtx.beginPath();
+        minimapCtx.arc((g.gx + 0.5) * cellPx, (g.gz + 0.5) * cellPx, 2.8, 0, Math.PI * 2);
+        minimapCtx.fill();
+      });
+    }
+
+    // =========================================================================
+    // 14. HUD, THEMES & GAME FLOW HANDLERS
+    // =========================================================================
+    function updateHUD() {
+      document.getElementById('score-val').textContent = state.score.toLocaleString('vi-VN');
+      document.getElementById('high-val').textContent = state.highScore.toLocaleString('vi-VN');
+      document.getElementById('level-val').textContent = state.level;
+      document.getElementById('pellets-left').textContent = `${state.pelletsRemaining} hạt`;
+
+      const livesBox = document.getElementById('lives-box');
+      livesBox.innerHTML = '';
+      for (let i = 0; i < state.lives; i++) {
+        const icon = document.createElement('div');
+        icon.className = 'life-icon';
+        livesBox.appendChild(icon);
+      }
+
+      mp.refreshLobbyUI();
+    }
+
+    function updateDashHUD() {
+      const entity = getMyControlledEntity();
+      const dashBar = document.getElementById('dash-bar');
+      const dashText = document.getElementById('dash-status-text');
+      if (!entity || entity.dashCooldown <= 0) {
+        dashBar.style.width = '100%';
+        dashBar.style.background = '#22c55e';
+        dashText.textContent = 'Sẵn sàng';
+      } else {
+        const pct = Math.max(0, 100 - (entity.dashCooldown / 3.5) * 100);
+        dashBar.style.width = `${pct}%`;
+        dashBar.style.background = '#f97316';
+        dashText.textContent = `${entity.dashCooldown.toFixed(1)}s`;
+      }
+    }
+
+    function triggerDash() {
+      if (state.status !== 'PLAYING') return;
+      const entity = getMyControlledEntity();
+      if (!entity) return;
+
+      if (entity.dashCooldown <= 0 && entity.dir !== DIRS.NONE) {
+        entity.dashTimer = 0.42;
+        entity.dashCooldown = 3.5;
+        sfx.dash();
+        const wPos = gridToWorld(entity.gx, entity.gz);
+        spawnParticles(wPos.x, 0.5, wPos.z, 0xfacc15, 10, 1.2);
+        spawnFloatingScore('BOOST! ⚡', getMyControlledMeshRoot().position, '#facc15');
+      }
+    }
+
+    function handlePacManHit(fromNetwork = false) {
+      sfx.die();
+      const wPos = gridToWorld(pacman.gx, pacman.gz);
+      spawnParticles(wPos.x, 0.7, wPos.z, 0xfacc15, 20, 1.5);
+      state.lives--;
+      updateHUD();
+
+      if (state.lives <= 0) {
+        state.status = 'GAMEOVER';
+        showModal(
+          'KẾT THÚC HIỆP ĐẤU',
+          mp.myRole === 'pacman' ? `Pac-Man đạt ${state.score.toLocaleString('vi-VN')} điểm!` : `Đội Bóng Ma đã chiến thắng!`,
+          'Bạn có thể đổi vai trò (Pac-Man hoặc Bóng Ma), tạo phòng mới hoặc nhấn nút bên dưới để tái đấu ngay!',
+          'Chơi Lại Hiệp Mới'
+        );
+      } else {
+        resetPositions();
+      }
+    }
+
+    function handleLevelClear() {
+      sfx.levelClear();
+      state.level++;
+      state.fruitSpawnedThisLevel = false;
+      state.fruitActive = false;
+      fruitMesh.visible = false;
+      populatePellets();
+      resetPositions();
+      spawnFloatingScore(`MÀN ${state.level}! 🎉`, pacModel.root.position, '#22c55e');
+      updateHUD();
+    }
+
+    function showModal(badge, title, desc, btnText) {
+      document.getElementById('modal-badge').textContent = badge;
+      document.getElementById('modal-title').textContent = title;
+      document.getElementById('modal-desc').textContent = desc;
+      document.getElementById('btn-start-game').textContent = btnText;
+      document.getElementById('modal-overlay').style.display = 'flex';
+      mp.refreshLobbyUI();
+    }
+
+    function toggleCameraMode() {
+      state.cameraMode = (state.cameraMode + 1) % 3;
+      const labels = ['WoraWork Follow', 'Toàn Cảnh 3D', 'Isometric 45°'];
+      document.getElementById('cam-label').textContent = labels[state.cameraMode];
+    }
+
+    function toggleThemeMode() {
+      state.themeMode = (state.themeMode + 1) % 2;
+      if (state.themeMode === 0) {
+        document.body.classList.remove('theme-neon');
+        document.getElementById('theme-label').textContent = 'Đảo Đồ Chơi 3D';
+        scene.background.setHex(0x93d5f6);
+        scene.fog.color.setHex(0x93d5f6);
+        materials.wallBase.color.setHex(0xe2c799);
+        materials.wallTop.color.setHex(0x4ade80);
+        materials.wallTop.emissive.setHex(0x000000);
+        materials.floorBoard.map = floorTexCozy;
+        materials.floorBoard.needsUpdate = true;
+        materials.water.color.setHex(0x38bdf8);
+        dirLight.intensity = 0.92;
+        hemiLight.intensity = 0.78;
+      } else {
+        document.body.classList.add('theme-neon');
+        document.getElementById('theme-label').textContent = 'Neon Arcade';
+        scene.background.setHex(0x090d16);
+        scene.fog.color.setHex(0x090d16);
+        materials.wallBase.color.setHex(0x0f172a);
+        materials.wallTop.color.setHex(0x0284c7);
+        materials.wallTop.emissive.setHex(0x0369a1);
+        materials.wallTop.emissiveIntensity = 0.5;
+        materials.floorBoard.map = floorTexNeon;
+        materials.floorBoard.needsUpdate = true;
+        materials.water.color.setHex(0x020617);
+        dirLight.intensity = 0.55;
+        hemiLight.intensity = 0.45;
+      }
+    }
+
+    // =========================================================================
+    // 15. INPUT CONTROLS & LOBBY EVENTS
+    // =========================================================================
+    function setInputDirection(dirKey) {
+      const d = DIRS[dirKey];
+      if (!d) return;
+
+      const entity = getMyControlledEntity();
+      if (!entity) return;
+
+      entity.nextDir = d;
+      if (entity.dir === DIRS.NONE) {
+        const cx = Math.round(entity.gx);
+        const cz = Math.round(entity.gz);
+        const canWalk = (mp.myRole === 'pacman')
+          ? isTileWalkableForPacMan(cx + d.x, cz + d.z)
+          : isTileWalkableForGhost(cx + d.x, cz + d.z, true);
+        if (canWalk) {
+          entity.dir = d;
+          entity.nextDir = DIRS.NONE;
+        }
+      }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      // Do not intercept typing when user is typing in Lobby input fields
+      if (document.activeElement && document.activeElement.tagName === 'INPUT') {
+        return;
+      }
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+        e.preventDefault();
+      }
+      if (e.code === 'ArrowUp' || e.code === 'KeyW') setInputDirection('UP');
+      if (e.code === 'ArrowDown' || e.code === 'KeyS') setInputDirection('DOWN');
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') setInputDirection('LEFT');
+      if (e.code === 'ArrowRight' || e.code === 'KeyD') setInputDirection('RIGHT');
+      if (e.code === 'Space') triggerDash();
+      if (e.code === 'KeyC') toggleCameraMode();
+      if (e.code === 'KeyT') toggleThemeMode();
+      if (e.code === 'KeyM') document.getElementById('btn-sound').click();
+      if (e.code === 'KeyP') document.getElementById('btn-pause').click();
+    });
+
+    document.querySelectorAll('.dpad-btn').forEach((btn) => {
+      const handlePress = (e) => {
+        e.preventDefault();
+        sfx.init();
+        const dir = btn.getAttribute('data-dir');
+        setInputDirection(dir);
+      };
+      btn.addEventListener('mousedown', handlePress);
+      btn.addEventListener('touchstart', handlePress, { passive: false });
+    });
+
+    document.getElementById('btn-dash-touch').addEventListener('click', () => {
+      sfx.init();
+      triggerDash();
+    });
+
+    document.getElementById('btn-camera').addEventListener('click', toggleCameraMode);
+    document.getElementById('btn-theme').addEventListener('click', toggleThemeMode);
+
+    document.getElementById('btn-sound').addEventListener('click', () => {
+      sfx.enabled = !sfx.enabled;
+      document.getElementById('sound-label').textContent = sfx.enabled ? 'Bật' : 'Tắt';
+    });
+
+    function openLobbyModal() {
+      state.status = 'PAUSED';
+      showModal(
+        'SẢNH PHÒNG CHỜ & ĐỔI VAI TRÒ',
+        'PAC-MAN 3D ONLINE',
+        'Đổi tên, chọn lại vai trò (Pac-Man hoặc Bóng Ma), tạo phòng hoặc gửi mã phòng cho bạn bè cùng tham gia.',
+        'Tiếp Tục Vào Trận'
+      );
+    }
+
+    document.getElementById('btn-pause').addEventListener('click', () => {
+      if (state.status === 'PLAYING') {
+        openLobbyModal();
+      } else if (state.status === 'PAUSED') {
+        state.status = 'PLAYING';
+        document.getElementById('modal-overlay').style.display = 'none';
+      }
+    });
+
+    document.getElementById('btn-open-lobby').addEventListener('click', openLobbyModal);
+
+    // Lobby UI Event Listeners
+    document.getElementById('input-player-name').addEventListener('input', () => {
+      mp.syncNameFromInput();
+      mp.refreshLobbyUI();
+    });
+
+    document.querySelectorAll('.role-card').forEach((card) => {
+      card.addEventListener('click', () => {
+        sfx.init();
+        const role = card.getAttribute('data-role');
+        mp.selectRole(role);
+      });
+    });
+
+    document.getElementById('btn-create-room').addEventListener('click', () => {
+      sfx.init();
+      mp.createRoom();
+    });
+
+    document.getElementById('btn-join-room').addEventListener('click', () => {
+      sfx.init();
+      const code = document.getElementById('input-room-code').value;
+      mp.joinRoom(code);
+    });
+
+    document.getElementById('btn-connect-ws').addEventListener('click', () => {
+      const url = (document.getElementById('input-ws-url').value || '').trim() || getDefaultWsUrl();
+      mp.connectWebSocket(url);
+    });
+
+    document.getElementById('btn-copy-code').addEventListener('click', () => {
+      if (mp.roomCode && navigator.clipboard) {
+        navigator.clipboard.writeText(mp.roomCode).catch(() => {});
+        const btn = document.getElementById('btn-copy-code');
+        btn.textContent = '✅ Đã chép!';
+        setTimeout(() => { btn.textContent = '📋 Sao chép mã'; }, 1500);
+      }
+    });
+
+    function startMatchFromLobby(broadcast = true) {
+      sfx.init();
+      mp.syncNameFromInput();
+      if (state.status === 'MENU' || state.status === 'GAMEOVER') {
+        state.score = 0;
+        state.level = 1;
+        state.lives = 3;
+        state.fruitSpawnedThisLevel = false;
+        populatePellets();
+        resetPositions();
+      } else {
+        resetPositions();
+      }
+      state.status = 'PLAYING';
+      document.getElementById('modal-overlay').style.display = 'none';
+      updateHUD();
+
+      if (broadcast && mp.roomCode) {
+        mp.sendRaw({
+          type: 'START_MATCH',
+          roomCode: mp.roomCode,
+          room: mp.roomsCatalog[mp.roomCode]
+        });
+      }
+    }
+
+    document.getElementById('btn-start-game').addEventListener('click', () => {
+      startMatchFromLobby(true);
+    });
+
+    function handleResize() {
+      const w = Math.max(320, window.innerWidth);
+      const h = Math.max(240, window.innerHeight);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    }
+
+    window.addEventListener('resize', handleResize);
+
+    // =========================================================================
+    // 16. INITIALIZATION & MAIN ANIMATION LOOP
+    // =========================================================================
+    document.getElementById('input-player-name').value = mp.playerName;
+    buildEnvironmentBase();
+    buildMazeWalls();
+    populatePellets();
+    resetPositions();
+    mp.refreshLobbyUI();
+    renderMinimap();
+    renderer.render(scene, camera);
+    updateNameplates();
+
+    function getDefaultWsUrl() {
+      if (typeof window !== 'undefined' && window.location) {
+        if (window.location.protocol === 'file:') {
+          return 'ws://localhost:8080';
+        }
+        if (window.location.host) {
+          const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+          return `${wsProto}//${window.location.host}`;
+        }
+      }
+      return 'ws://localhost:8080';
+    }
+
+    // Tự động nhận diện và kết nối WebSocket ngay khi vừa mở trò chơi
+    const autoWsUrl = getDefaultWsUrl();
+    const wsInputEl = document.getElementById('input-ws-url');
+    if (wsInputEl) {
+      wsInputEl.value = autoWsUrl;
+      wsInputEl.placeholder = autoWsUrl;
+    }
+    mp.connectWebSocket(autoWsUrl);
+
+    let lastTime = performance.now();
+
+    function animate(now) {
+      requestAnimationFrame(animate);
+
+      const dt = Math.min(0.04, Math.max(0.001, (now - lastTime) / 1000));
+      lastTime = now;
+      state.elapsedTime += dt;
+
+      for (let gz = 0; gz < GRID_SIZE; gz++) {
+        for (let gx = 0; gx < GRID_SIZE; gx++) {
+          const p = activePellets[gz] && activePellets[gz][gx];
+          if (p && p.isPower && !p.eaten) {
+            p.mesh.rotation.y += dt * 2.8;
+            p.mesh.position.y = 0.65 + Math.sin(state.elapsedTime * 5 + gx) * 0.14;
+          }
+        }
+      }
+
+      for (let i = 0; i < clouds.length; i++) {
+        const c = clouds[i];
+        c.angle += c.speed * dt;
+        c.mesh.position.x = Math.cos(c.angle) * c.radius;
+        c.mesh.position.z = Math.sin(c.angle) * c.radius;
+      }
+
+      if (state.status === 'PLAYING') {
+        updatePacMan(dt);
+        updateGhosts(dt);
+        updateDashHUD();
+        mp.broadcastMyPosition();
+      }
+
+      updateParticles(dt);
+      updateCamera(dt);
+      renderMinimap();
+      renderer.render(scene, camera);
+      updateNameplates();
+    }
+
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+node_modules
+.git
+.github
+.yarn
+.yarnrc
+.playwright-mcp
+yarn.lock
+npm-debug.log*
+.DS_Store

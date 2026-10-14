@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <radialGradient id="pacGrad" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#fff066"/>
+      <stop offset="50%" stop-color="#facc15"/>
+      <stop offset="90%" stop-color="#ca8a04"/>
+      <stop offset="100%" stop-color="#854d0e"/>
+    </radialGradient>
+    <radialGradient id="pelletGrad" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#ffedd5"/>
+      <stop offset="60%" stop-color="#fb923c"/>
+      <stop offset="100%" stop-color="#c2410c"/>
+    </radialGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="16" stdDeviation="12" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <!-- Background badge -->
+  <rect width="512" height="512" rx="128" fill="#09090b"/>
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="none" stroke="#27272a" stroke-width="8"/>
+  <!-- Food pellets -->
+  <circle cx="400" cy="256" r="22" fill="url(#pelletGrad)" filter="url(#shadow)"/>
+  <circle cx="460" cy="256" r="14" fill="#fb923c" opacity="0.6"/>
+  <!-- Pac-Man body (mouth open towards right pellets) -->
+  <path d="M 220 256 L 340 160 A 150 150 0 1 0 340 352 Z" fill="url(#pacGrad)" filter="url(#shadow)" stroke="#713f12" stroke-width="6"/>
+  <!-- Eye -->
+  <circle cx="210" cy="175" r="18" fill="#18181b"/>
+  <circle cx="214" cy="171" r="6" fill="#ffffff"/>
+</svg>
