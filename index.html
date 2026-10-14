@@ -1696,6 +1696,7 @@
         this.bc = null;
         this.roomsCatalog = {}; // { [code]: { code, hostId, status, players: { [id]: { id, name, role, score } } } }
         this.lastSyncSent = 0;
+        this.lastBotsSyncSent = 0;
 
         this.initBroadcastChannel();
       }
@@ -2009,6 +2010,43 @@
         });
       }
 
+      broadcastBotsPosition() {
+        if (!this.roomCode || !this.isHost) return;
+        const now = performance.now();
+        if (now - this.lastBotsSyncSent < 45) return;
+        this.lastBotsSyncSent = now;
+
+        const isRemotePacMan = this.isRoleControlledByRemoteHuman('pacman');
+        const isBotPacMan = (this.myRole !== 'pacman') && !isRemotePacMan;
+
+        const botGhosts = ghosts.filter(
+          (g) => g.name !== this.myRole && !this.isRoleControlledByRemoteHuman(g.name)
+        );
+
+        if (botGhosts.length === 0 && !isBotPacMan) return;
+
+        this.sendRaw({
+          type: 'BOTS_SYNC',
+          roomCode: this.roomCode,
+          bots: {
+            ghosts: botGhosts.map((g) => ({
+              name: g.name,
+              gx: Number(g.gx.toFixed(3)),
+              gz: Number(g.gz.toFixed(3)),
+              dirName: g.dir ? g.dir.name : 'LEFT',
+              state: g.state,
+              inHouse: g.inHouse
+            })),
+            pacman: isBotPacMan ? {
+              gx: Number(pacman.gx.toFixed(3)),
+              gz: Number(pacman.gz.toFixed(3)),
+              dirName: pacman.dir ? pacman.dir.name : 'NONE',
+              dashTimer: pacman.dashTimer || 0
+            } : null
+          }
+        });
+      }
+
       broadcastWorldEvent(eventData) {
         if (!this.roomCode) return;
         this.sendRaw({
@@ -2108,21 +2146,66 @@
           }
 
           if (data.role === 'pacman' && this.myRole !== 'pacman') {
-            pacman.gx = data.gx;
-            pacman.gz = data.gz;
-            pacman.dir = DIRS[data.dirName] || DIRS.NONE;
+            pacman.targetGx = data.gx;
+            pacman.targetGz = data.gz;
+            pacman.targetDir = DIRS[data.dirName] || pacman.dir;
             pacman.dashTimer = data.dashTimer || 0;
+            if (!pacman.hasTarget) {
+              pacman.gx = data.gx;
+              pacman.gz = data.gz;
+              pacman.hasTarget = true;
+            }
           } else if (data.role !== 'pacman' && this.myRole !== data.role) {
             const g = ghosts.find((gh) => gh.name === data.role);
             if (g) {
-              g.gx = data.gx;
-              g.gz = data.gz;
-              g.tileX = Math.round(data.gx);
-              g.tileZ = Math.round(data.gz);
-              g.dir = DIRS[data.dirName] || DIRS.LEFT;
+              g.targetGx = data.gx;
+              g.targetGz = data.gz;
+              g.targetDir = DIRS[data.dirName] || g.dir;
               g.dashTimer = data.dashTimer || 0;
               g.releaseTimer = 0;
               g.inHouse = false;
+              if (!g.hasTarget) {
+                g.gx = data.gx;
+                g.gz = data.gz;
+                g.hasTarget = true;
+              }
+            }
+          }
+        }
+
+        else if (data.type === 'BOTS_SYNC') {
+          if (data.roomCode && data.roomCode !== this.roomCode) return;
+          if (this.isHost) return; // Only guest clients sync bots from host
+
+          if (data.bots) {
+            if (data.bots.ghosts) {
+              data.bots.ghosts.forEach((bg) => {
+                const g = ghosts.find((gh) => gh.name === bg.name);
+                if (g && this.myRole !== g.name && !this.isRoleControlledByRemoteHuman(g.name)) {
+                  g.targetGx = bg.gx;
+                  g.targetGz = bg.gz;
+                  g.targetDir = DIRS[bg.dirName] || g.dir;
+                  if (bg.state) g.state = bg.state;
+                  g.inHouse = bg.inHouse;
+                  g.releaseTimer = 0;
+                  if (!g.hasTarget) {
+                    g.gx = bg.gx;
+                    g.gz = bg.gz;
+                    g.hasTarget = true;
+                  }
+                }
+              });
+            }
+            if (data.bots.pacman && this.myRole !== 'pacman' && !this.isRoleControlledByRemoteHuman('pacman')) {
+              pacman.targetGx = data.bots.pacman.gx;
+              pacman.targetGz = data.bots.pacman.gz;
+              pacman.targetDir = DIRS[data.bots.pacman.dirName] || pacman.dir;
+              pacman.dashTimer = data.bots.pacman.dashTimer || 0;
+              if (!pacman.hasTarget) {
+                pacman.gx = data.bots.pacman.gx;
+                pacman.gz = data.bots.pacman.gz;
+                pacman.hasTarget = true;
+              }
             }
           }
         }
@@ -2148,6 +2231,12 @@
             }
           } else if (data.event === 'PACMAN_HIT') {
             handlePacManHit(true);
+          } else if (data.event === 'FRUIT_EATEN') {
+            state.fruitActive = false;
+            fruitMesh.visible = false;
+            sfx.eatFruit();
+          } else if (data.event === 'LEVEL_CLEAR') {
+            handleLevelClear(true);
           }
         }
 
@@ -2489,7 +2578,11 @@
     function resetPositions() {
       pacman.gx = 10;
       pacman.gz = 16;
+      pacman.targetGx = 10;
+      pacman.targetGz = 16;
+      pacman.hasTarget = false;
       pacman.dir = DIRS.NONE;
+      pacman.targetDir = DIRS.NONE;
       pacman.nextDir = DIRS.NONE;
       pacman.dashTimer = 0;
       pacman.dashCooldown = 0;
@@ -2513,7 +2606,11 @@
         g.progress = 0;
         g.gx = spawnX;
         g.gz = spawnZ;
+        g.targetGx = spawnX;
+        g.targetGz = spawnZ;
+        g.hasTarget = false;
         g.dir = idx === 0 ? DIRS.LEFT : DIRS.UP;
+        g.targetDir = g.dir;
         g.nextDir = DIRS.NONE;
         g.dashTimer = 0;
         g.dashCooldown = 0;
@@ -2525,7 +2622,11 @@
         g.mesh.skirtGroup.visible = true;
         g.mesh.mat.color.setHex(g.baseColor);
         g.mesh.mat.emissive.setHex(0x000000);
-        if (!isHumanGhost) chooseNextGhostStep(g);
+
+        const isBotGhost = !isHumanGhost;
+        const isGhostAuthority = (mp.myRole === g.name) || (isBotGhost && (!mp.roomCode || mp.isHost));
+        if (isGhostAuthority) chooseNextGhostStep(g);
+
         const wPos = gridToWorld(g.gx, g.gz);
         g.mesh.root.position.set(wPos.x, 0, wPos.z);
       });
@@ -2547,6 +2648,36 @@
         }
       });
       document.getElementById('power-pill-box').style.display = 'flex';
+    }
+
+    // =========================================================================
+    // 9.5. ENTITY INTERPOLATION (Smooth movement for remote players & synced bots)
+    // =========================================================================
+    function interpolateEntity(entity, dt) {
+      if (!entity.hasTarget || entity.targetGx === undefined) return;
+      let dx = entity.targetGx - entity.gx;
+      let dz = entity.targetGz - entity.gz;
+      const dist = Math.hypot(dx, dz);
+
+      // Tunnel wrap-around check: if distance is huge (> 3 tiles), snap immediately to prevent sliding across map
+      if (Math.abs(dx) > 3.0) {
+        entity.gx = entity.targetGx;
+        entity.gz = entity.targetGz;
+      } else if (dist > 0.001) {
+        // Smooth exponential / lerp factor based on delta time
+        const factor = Math.min(1.0, dt * 22);
+        entity.gx += dx * factor;
+        entity.gz += dz * factor;
+      } else {
+        entity.gx = entity.targetGx;
+        entity.gz = entity.targetGz;
+      }
+
+      if (entity.targetDir && entity.targetDir !== DIRS.NONE) {
+        entity.dir = entity.targetDir;
+      }
+      entity.tileX = Math.round(entity.gx);
+      entity.tileZ = Math.round(entity.gz);
     }
 
     // =========================================================================
@@ -2572,41 +2703,42 @@
 
       const isRemotePacMan = mp.isRoleControlledByRemoteHuman('pacman');
       const isBotPacMan = (mp.myRole !== 'pacman') && !isRemotePacMan;
+      const isLocalPacManAuthority = (mp.myRole === 'pacman') || (isBotPacMan && (!mp.roomCode || mp.isHost));
 
-      // If local player chose a Ghost and no remote human is playing Pac-Man, smart AI drives Pac-Man!
-      if (isBotPacMan) {
-        const distToCenter = Math.hypot(pacman.gx - cx, pacman.gz - cz);
-        if (pacman.dir === DIRS.NONE || distToCenter < 0.18) {
-          const validDirs = CARDINAL_DIRS.filter((d) => {
-            if (pacman.dir !== DIRS.NONE && d.x === -pacman.dir.x && d.z === -pacman.dir.z) return false;
-            return isTileWalkableForPacMan(cx + d.x, cz + d.z);
-          });
-          const pool = validDirs.length > 0 ? validDirs : CARDINAL_DIRS.filter((d) => isTileWalkableForPacMan(cx + d.x, cz + d.z));
-          if (pool.length > 0) {
-            // Pick direction that maximizes distance from nearest dangerous ghost + seeks pellets
-            let bestDir = pool[0];
-            let bestScore = -Infinity;
-            pool.forEach((d) => {
-              const nx = cx + d.x;
-              const nz = cz + d.z;
-              let minGhostDist = Infinity;
-              ghosts.forEach((g) => {
-                const gd = Math.hypot(nx - g.gx, nz - g.gz);
-                if (gd < minGhostDist) minGhostDist = gd;
-              });
-              const hasPellet = (activePellets[nz] && activePellets[nz][nx] && !activePellets[nz][nx].eaten) ? 2.5 : 0;
-              const score = (state.frightenedTimer > 0 ? -minGhostDist : minGhostDist * 1.4) + hasPellet + Math.random() * 0.6;
-              if (score > bestScore) {
-                bestScore = score;
-                bestDir = d;
-              }
+      if (isLocalPacManAuthority) {
+        // If local player chose a Ghost and no remote human is playing Pac-Man, smart AI drives Pac-Man! (Only host in MP)
+        if (isBotPacMan) {
+          const distToCenter = Math.hypot(pacman.gx - cx, pacman.gz - cz);
+          if (pacman.dir === DIRS.NONE || distToCenter < 0.18) {
+            const validDirs = CARDINAL_DIRS.filter((d) => {
+              if (pacman.dir !== DIRS.NONE && d.x === -pacman.dir.x && d.z === -pacman.dir.z) return false;
+              return isTileWalkableForPacMan(cx + d.x, cz + d.z);
             });
-            pacman.nextDir = bestDir;
+            const pool = validDirs.length > 0 ? validDirs : CARDINAL_DIRS.filter((d) => isTileWalkableForPacMan(cx + d.x, cz + d.z));
+            if (pool.length > 0) {
+              // Pick direction that maximizes distance from nearest dangerous ghost + seeks pellets
+              let bestDir = pool[0];
+              let bestScore = -Infinity;
+              pool.forEach((d) => {
+                const nx = cx + d.x;
+                const nz = cz + d.z;
+                let minGhostDist = Infinity;
+                ghosts.forEach((g) => {
+                  const gd = Math.hypot(nx - g.gx, nz - g.gz);
+                  if (gd < minGhostDist) minGhostDist = gd;
+                });
+                const hasPellet = (activePellets[nz] && activePellets[nz][nx] && !activePellets[nz][nx].eaten) ? 2.5 : 0;
+                const score = (state.frightenedTimer > 0 ? -minGhostDist : minGhostDist * 1.4) + hasPellet + Math.random() * 0.6;
+                if (score > bestScore) {
+                  bestScore = score;
+                  bestDir = d;
+                }
+              });
+              pacman.nextDir = bestDir;
+            }
           }
         }
-      }
 
-      if (!isRemotePacMan) {
         // 1. Handle Buffered Direction Input
         if (pacman.nextDir !== DIRS.NONE) {
           const isReverse = (
@@ -2656,6 +2788,9 @@
             pacman.gz = nextZ;
           }
         }
+      } else {
+        // Remote human Pac-Man OR Guest client bot Pac-Man: interpolate position smoothly!
+        interpolateEntity(pacman, dt);
       }
 
       if (pacman.dir !== DIRS.NONE) {
@@ -2674,44 +2809,46 @@
       pacModel.root.position.set(wPos.x, 0, wPos.z);
       pacGlowLight.position.set(wPos.x, 2.2, wPos.z);
 
-      // 3. Check Pellet Collection
-      const tileX = Math.round(pacman.gx);
-      const tileZ = Math.round(pacman.gz);
-      if (tileZ >= 0 && tileZ < GRID_SIZE && tileX >= 0 && tileX < GRID_SIZE) {
-        const pObj = activePellets[tileZ] && activePellets[tileZ][tileX];
-        if (pObj && !pObj.eaten) {
-          pObj.eaten = true;
-          pObj.mesh.visible = false;
-          state.pelletsRemaining--;
+      // 3. Check Pellet Collection (Only authoritative controller evaluates to avoid duplicate sync events)
+      if (isLocalPacManAuthority) {
+        const tileX = Math.round(pacman.gx);
+        const tileZ = Math.round(pacman.gz);
+        if (tileZ >= 0 && tileZ < GRID_SIZE && tileX >= 0 && tileX < GRID_SIZE) {
+          const pObj = activePellets[tileZ] && activePellets[tileZ][tileX];
+          if (pObj && !pObj.eaten) {
+            pObj.eaten = true;
+            pObj.mesh.visible = false;
+            state.pelletsRemaining--;
 
-          mp.broadcastWorldEvent({ event: 'PELLET_EATEN', gx: tileX, gz: tileZ });
+            mp.broadcastWorldEvent({ event: 'PELLET_EATEN', gx: tileX, gz: tileZ });
 
-          if (pObj.isPower) {
-            if (mp.myRole === 'pacman') state.score += 50;
-            activatePowerMode();
-          } else {
-            if (mp.myRole === 'pacman') state.score += 10;
-            sfx.chomp();
-            spawnParticles(wPos.x, 0.4, wPos.z, 0xfacc15, 4, 0.5);
-          }
+            if (pObj.isPower) {
+              if (mp.myRole === 'pacman') state.score += 50;
+              activatePowerMode();
+            } else {
+              if (mp.myRole === 'pacman') state.score += 10;
+              sfx.chomp();
+              spawnParticles(wPos.x, 0.4, wPos.z, 0xfacc15, 4, 0.5);
+            }
 
-          if (!state.fruitSpawnedThisLevel && state.pelletsRemaining === 110) {
-            state.fruitSpawnedThisLevel = true;
-            state.fruitActive = true;
-            state.fruitTimer = 12.0;
-            const fPos = gridToWorld(10, 12);
-            fruitMesh.position.set(fPos.x, 0.25, fPos.z);
-            fruitMesh.visible = true;
-          }
+            if (!state.fruitSpawnedThisLevel && state.pelletsRemaining === 110) {
+              state.fruitSpawnedThisLevel = true;
+              state.fruitActive = true;
+              state.fruitTimer = 12.0;
+              const fPos = gridToWorld(10, 12);
+              fruitMesh.position.set(fPos.x, 0.25, fPos.z);
+              fruitMesh.visible = true;
+            }
 
-          if (state.score > state.highScore) {
-            state.highScore = state.score;
-            localStorage.setItem('pacman3d_worawork_high', String(state.highScore));
-          }
-          updateHUD();
+            if (state.score > state.highScore) {
+              state.highScore = state.score;
+              localStorage.setItem('pacman3d_worawork_high', String(state.highScore));
+            }
+            updateHUD();
 
-          if (state.pelletsRemaining <= 0) {
-            handleLevelClear();
+            if (state.pelletsRemaining <= 0) {
+              handleLevelClear(false);
+            }
           }
         }
       }
@@ -2721,7 +2858,7 @@
         state.fruitTimer -= dt;
         fruitMesh.rotation.y += dt * 2.5;
         fruitMesh.position.y = 0.25 + Math.sin(state.elapsedTime * 5) * 0.15;
-        if (Math.hypot(pacman.gx - 10, pacman.gz - 12) < 0.7) {
+        if (isLocalPacManAuthority && Math.hypot(pacman.gx - 10, pacman.gz - 12) < 0.7) {
           state.fruitActive = false;
           fruitMesh.visible = false;
           const fruitBonus = 300 * state.level;
@@ -2730,6 +2867,7 @@
           spawnParticles(fruitMesh.position.x, 0.6, fruitMesh.position.z, 0xef4444, 14, 1.2);
           spawnFloatingScore(`+${fruitBonus} CHERRY!`, fruitMesh.position, '#ef4444');
           updateHUD();
+          mp.broadcastWorldEvent({ event: 'FRUIT_EATEN' });
         } else if (state.fruitTimer <= 0) {
           state.fruitActive = false;
           fruitMesh.visible = false;
@@ -2831,8 +2969,10 @@
         const g = ghosts[idx];
         const isLocalHumanGhost = (mp.myRole === g.name);
         const isRemoteHumanGhost = mp.isRoleControlledByRemoteHuman(g.name);
+        const isBotGhost = !isLocalHumanGhost && !isRemoteHumanGhost;
+        const isGhostAuthority = isLocalHumanGhost || (isBotGhost && (!mp.roomCode || mp.isHost));
 
-        if (!isLocalHumanGhost && !isRemoteHumanGhost && g.releaseTimer > 0) {
+        if (isGhostAuthority && g.releaseTimer > 0) {
           g.releaseTimer -= dt;
           const wPos = gridToWorld(g.tileX, g.tileZ);
           g.mesh.root.position.set(wPos.x, Math.sin(state.elapsedTime * 6 + idx) * 0.12, wPos.z);
@@ -2861,7 +3001,7 @@
 
         if (isLocalHumanGhost && g.state !== 'EATEN') {
           updateHumanControlledGhost(g, dt);
-        } else if (!isRemoteHumanGhost) {
+        } else if (isGhostAuthority) {
           let spd = 4.1 + (state.level - 1) * 0.22;
           if (g.state === 'FRIGHTENED') spd *= 0.62;
           if (g.state === 'EATEN') spd *= 2.05;
@@ -2881,6 +3021,9 @@
             g.gx = g.tileX + dx * g.progress;
           }
           g.gz = g.tileZ + (g.nextTileZ - g.tileZ) * g.progress;
+        } else {
+          // Guest bot ghost OR Remote human ghost: interpolate position smoothly!
+          interpolateEntity(g, dt);
         }
 
         const wPos = gridToWorld(g.gx, g.gz);
@@ -2889,42 +3032,45 @@
         g.mesh.skirtGroup.rotation.y += dt * 4.5;
         g.mesh.bodyGroup.rotation.y = g.dir.angle;
 
-        // Collision check with Pac-Man
-        const distToPac = Math.hypot(g.gx - pacman.gx, g.gz - pacman.gz);
-        if (distToPac < 0.72) {
-          if (g.state === 'FRIGHTENED') {
-            g.state = 'EATEN';
-            g.tileX = Math.round(g.gx);
-            g.tileZ = Math.round(g.gz);
-            g.nextTileX = g.tileX;
-            g.nextTileZ = g.tileZ;
-            g.progress = 0;
-            chooseNextGhostStep(g);
+        // Collision check with Pac-Man (only evaluated by authority to avoid duplicate events)
+        const isCollisionAuthority = isLocalHumanGhost || (mp.myRole === 'pacman') || (mp.isHost && isBotGhost);
+        if (isCollisionAuthority) {
+          const distToPac = Math.hypot(g.gx - pacman.gx, g.gz - pacman.gz);
+          if (distToPac < 0.72) {
+            if (g.state === 'FRIGHTENED') {
+              g.state = 'EATEN';
+              g.tileX = Math.round(g.gx);
+              g.tileZ = Math.round(g.gz);
+              g.nextTileX = g.tileX;
+              g.nextTileZ = g.tileZ;
+              g.progress = 0;
+              chooseNextGhostStep(g);
 
-            state.ghostCombo++;
-            const pts = 200 * Math.pow(2, state.ghostCombo - 1);
-            if (mp.myRole === 'pacman') state.score += pts;
-            if (state.score > state.highScore) {
-              state.highScore = state.score;
-              localStorage.setItem('pacman3d_worawork_high', String(state.highScore));
-            }
-            sfx.eatGhost();
-            mp.broadcastWorldEvent({ event: 'GHOST_EATEN', ghostName: g.name });
-            spawnParticles(wPos.x, 0.8, wPos.z, 0x38bdf8, 16, 1.3);
-            spawnFloatingScore(`+${pts}!`, g.mesh.root.position, '#60a5fa');
-            updateHUD();
-          } else if (g.state === 'NORMAL') {
-            if (isLocalHumanGhost) {
-              state.score += 500;
+              state.ghostCombo++;
+              const pts = 200 * Math.pow(2, state.ghostCombo - 1);
+              if (mp.myRole === 'pacman') state.score += pts;
               if (state.score > state.highScore) {
                 state.highScore = state.score;
                 localStorage.setItem('pacman3d_worawork_high', String(state.highScore));
               }
-              spawnFloatingScore('+500 BẮT ĐƯỢC PAC-MAN!', g.mesh.root.position, '#ef4444');
+              sfx.eatGhost();
+              mp.broadcastWorldEvent({ event: 'GHOST_EATEN', ghostName: g.name });
+              spawnParticles(wPos.x, 0.8, wPos.z, 0x38bdf8, 16, 1.3);
+              spawnFloatingScore(`+${pts}!`, g.mesh.root.position, '#60a5fa');
+              updateHUD();
+            } else if (g.state === 'NORMAL') {
+              if (isLocalHumanGhost) {
+                state.score += 500;
+                if (state.score > state.highScore) {
+                  state.highScore = state.score;
+                  localStorage.setItem('pacman3d_worawork_high', String(state.highScore));
+                }
+                spawnFloatingScore('+500 BẮT ĐƯỢC PAC-MAN!', g.mesh.root.position, '#ef4444');
+              }
+              mp.broadcastWorldEvent({ event: 'PACMAN_HIT', ghostName: g.name });
+              handlePacManHit(false);
+              break;
             }
-            mp.broadcastWorldEvent({ event: 'PACMAN_HIT', ghostName: g.name });
-            handlePacManHit(false);
-            break;
           }
         }
       }
@@ -3056,6 +3202,7 @@
     }
 
     function handlePacManHit(fromNetwork = false) {
+      if (state.status !== 'PLAYING') return;
       sfx.die();
       const wPos = gridToWorld(pacman.gx, pacman.gz);
       spawnParticles(wPos.x, 0.7, wPos.z, 0xfacc15, 20, 1.5);
@@ -3075,7 +3222,7 @@
       }
     }
 
-    function handleLevelClear() {
+    function handleLevelClear(fromNetwork = false) {
       sfx.levelClear();
       state.level++;
       state.fruitSpawnedThisLevel = false;
@@ -3085,6 +3232,9 @@
       resetPositions();
       spawnFloatingScore(`MÀN ${state.level}! 🎉`, pacModel.root.position, '#22c55e');
       updateHUD();
+      if (!fromNetwork && mp.roomCode) {
+        mp.broadcastWorldEvent({ event: 'LEVEL_CLEAR', level: state.level });
+      }
     }
 
     function showModal(badge, title, desc, btnText) {
@@ -3367,6 +3517,9 @@
         updateGhosts(dt);
         updateDashHUD();
         mp.broadcastMyPosition();
+        if (mp.isHost) {
+          mp.broadcastBotsPosition();
+        }
       }
 
       updateParticles(dt);

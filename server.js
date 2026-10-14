@@ -287,6 +287,11 @@ wss.on('connection', (ws) => {
       broadcastToRoom(currentRoomCode, data, ws);
     }
 
+    else if (type === 'BOTS_SYNC') {
+      if (!currentRoomCode) return;
+      broadcastToRoom(currentRoomCode, data, ws);
+    }
+
     else if (type === 'LEAVE_ROOM') {
       handleDisconnect();
     }
