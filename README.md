@@ -21,7 +21,11 @@
 - **3 Chế Độ Trận Đấu Linh Hoạt:**
   - **1 vs 4:** 1 Pac-Man đối đầu 4 Bóng Ma (Blinky, Pinky, Inky, Clyde).
   - **1 vs 3:** 1 Pac-Man đối đầu 3 Bóng Ma (Blinky, Pinky, Inky).
-  - **2 vs 3 (Co-op):** 2 Pac-Man (Pac-Man Vàng & Pac-Man 2 Xanh) cùng hợp lực đối đầu 3 Bóng Ma với **Quỹ mạng dùng chung**.
+  - **2 vs 3 (Co-op):** 2 Pac-Man (Pac-Man Vàng & Pac-Man 2 Xanh) cùng hợp lực đối đầu 3 Bóng Ma với **Cơ chế Co-op sống còn & Quỹ mạng dùng chung**:
+    - *Bị loại cá nhân liền mạch (No Reset):* Khi 1 Pac-Man bị bắt, trò chơi không reset vị trí của đồng đội hay bóng ma. Người sống sót tiếp tục chiến đấu uninterrupted.
+    - *Chế độ Quan sát đồng đội (Spectator Camera):* Người chơi bị loại tự động chuyển camera theo dõi góc nhìn của đồng đội còn sống.
+    - *Team Wipe & Hồi sinh theo số mạng còn lại:* Chỉ reset vị trí khi toàn đội Pac-Man bị loại. Nếu số mạng còn lại ít hơn số người chơi (ví dụ còn 1 mạng), hệ thống ưu tiên hồi sinh đúng số mạng hiện có.
+    - *Hồi sinh đồng đội khi Clear màn:* Mỗi khi hoàn thành màn chơi (ăn hết đậu), đội được thưởng thêm 1 mạng và đồng đội đang bị loại sẽ lập tức được hồi sinh trở lại trận đấu!
 - **Cài Đặt Phòng Tùy Biến (Dành Cho Host):**
   - **Tùy chỉnh số mạng khởi đầu:** 1, 2, 3, hoặc 5 mạng cho đội Pac-Man.
   - **Tốc độ đồng bộ mạng linh hoạt:** Điều chỉnh tần suất gửi gói tin từ 100ms đến 300ms, tự động điều chỉnh hệ số nội suy Lerp thích ứng giúp di chuyển luôn mượt mà ngay cả khi kết nối mạng không ổn định.

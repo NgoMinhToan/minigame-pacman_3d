@@ -794,6 +794,7 @@
         <div class="stat-card">
           <div class="stat-label">Mạng Pac-Man</div>
           <div class="lives-container" id="lives-box"></div>
+          <div id="pac-team-status" style="font-size:0.7rem; color:#94a3b8; margin-top:2px; display:none; white-space:nowrap;"></div>
         </div>
       </div>
 
@@ -1685,6 +1686,11 @@
           return;
         }
 
+        if ((role === 'pacman' && pacman.isAlive === false) || (role === 'pacman2' && pacman2.isAlive === false)) {
+          el.style.display = 'none';
+          return;
+        }
+
         const playerInfo = rolePlayers[role];
         const isLocalRole = (mp.myRole === role);
         const labelText = playerInfo
@@ -1731,6 +1737,7 @@
 
     const pacman = {
       name: 'pacman',
+      isAlive: true,
       gx: 10,
       gz: 16,
       dir: DIRS.NONE,
@@ -1747,6 +1754,7 @@
 
     const pacman2 = {
       name: 'pacman2',
+      isAlive: true,
       gx: 11,
       gz: 16,
       dir: DIRS.NONE,
@@ -2161,7 +2169,7 @@
         this.lastSyncSent = now;
 
         const entity = getMyControlledEntity();
-        if (!entity) return;
+        if (!entity || entity.isAlive === false) return;
 
         this.sendRaw({
           type: 'PLAYER_SYNC',
@@ -2211,13 +2219,13 @@
               state: g.state,
               inHouse: g.inHouse
             })),
-            pacman: isBotPacMan1 ? {
+            pacman: (isBotPacMan1 && pacman.isAlive !== false) ? {
               gx: Number(pacman.gx.toFixed(3)),
               gz: Number(pacman.gz.toFixed(3)),
               dirName: pacman.dir ? pacman.dir.name : 'NONE',
               dashTimer: pacman.dashTimer || 0
             } : null,
-            pacman2: isBotPacMan2 ? {
+            pacman2: (isBotPacMan2 && pacman2.isAlive !== false) ? {
               gx: Number(pacman2.gx.toFixed(3)),
               gz: Number(pacman2.gz.toFixed(3)),
               dirName: pacman2.dir ? pacman2.dir.name : 'NONE',
@@ -2450,13 +2458,13 @@
               sfx.eatGhost();
             }
           } else if (data.event === 'PACMAN_HIT') {
-            handlePacManHit(true, data.pacmanRole || 'pacman', data.remainingLives);
+            handlePacManHit(true, data.pacmanRole || 'pacman', data.remainingLives, data.respawnedRoles);
           } else if (data.event === 'FRUIT_EATEN') {
             state.fruitActive = false;
             fruitMesh.visible = false;
             sfx.eatFruit();
           } else if (data.event === 'LEVEL_CLEAR') {
-            handleLevelClear(true);
+            handleLevelClear(true, data.level, data.remainingLives);
           }
         }
 
@@ -2628,8 +2636,18 @@
     }
 
     function getMyControlledMeshRoot() {
-      if (mp.myRole === 'pacman') return pacModel.root;
-      if (mp.myRole === 'pacman2') return pacModel2.root;
+      if (mp.myRole === 'pacman') {
+        if (pacman.isAlive === false && mp.getRoomMode() === '2v3' && pacman2.isAlive !== false) {
+          return pacModel2.root;
+        }
+        return pacModel.root;
+      }
+      if (mp.myRole === 'pacman2') {
+        if (pacman2.isAlive === false && pacman.isAlive !== false) {
+          return pacModel.root;
+        }
+        return pacModel2.root;
+      }
       const g = ghosts.find((gh) => gh.name === mp.myRole);
       return g ? g.mesh.root : pacModel.root;
     }
@@ -2724,9 +2742,17 @@
       const mode = mp.getRoomMode();
       let targetPac = pacman;
       if (mode === '2v3') {
-        const d1 = Math.hypot(g.gx - pacman.gx, g.gz - pacman.gz);
-        const d2 = Math.hypot(g.gx - pacman2.gx, g.gz - pacman2.gz);
-        targetPac = d1 <= d2 ? pacman : pacman2;
+        const isPac1Alive = (pacman.isAlive !== false);
+        const isPac2Alive = (pacman2.isAlive !== false);
+        if (isPac1Alive && isPac2Alive) {
+          const d1 = Math.hypot(g.gx - pacman.gx, g.gz - pacman.gz);
+          const d2 = Math.hypot(g.gx - pacman2.gx, g.gz - pacman2.gz);
+          targetPac = d1 <= d2 ? pacman : pacman2;
+        } else if (isPac2Alive) {
+          targetPac = pacman2;
+        } else {
+          targetPac = pacman;
+        }
       }
 
       const cycle = state.elapsedTime % 27;
@@ -2818,8 +2844,8 @@
       if (g.state === 'FRIGHTENED' && !g.inHouse && !targetOverride) {
         let maxScore = -Infinity;
         candidates.forEach((c) => {
-          const d1 = Math.hypot(c.nx - pacman.gx, c.nz - pacman.gz);
-          const d2 = (mp.getRoomMode() === '2v3') ? Math.hypot(c.nx - pacman2.gx, c.nz - pacman2.gz) : Infinity;
+          const d1 = (pacman.isAlive !== false) ? Math.hypot(c.nx - pacman.gx, c.nz - pacman.gz) : Infinity;
+          const d2 = (mp.getRoomMode() === '2v3' && pacman2.isAlive !== false) ? Math.hypot(c.nx - pacman2.gx, c.nz - pacman2.gz) : Infinity;
           const dist = Math.min(d1, d2) + Math.random() * 2.0;
           if (dist > maxScore) {
             maxScore = dist;
@@ -2862,6 +2888,9 @@
       pacModel.root.position.set(pPos.x, 0, pPos.z);
       pacModel.bodyGroup.rotation.y = 0;
       pacGlowLight.position.set(pPos.x, 2.2, pPos.z);
+      const isPac1Alive = (pacman.isAlive !== false);
+      pacModel.root.visible = isPac1Alive;
+      pacGlowLight.visible = isPac1Alive;
 
       if (mode === '2v3') {
         pacman2.gx = 11;
@@ -2878,7 +2907,8 @@
         const p2Pos = gridToWorld(pacman2.gx, pacman2.gz);
         pacModel2.root.position.set(p2Pos.x, 0, p2Pos.z);
         pacModel2.bodyGroup.rotation.y = 0;
-        pacModel2.root.visible = true;
+        const isPac2Alive = (pacman2.isAlive !== false);
+        pacModel2.root.visible = isPac2Alive;
       } else {
         pacModel2.root.visible = false;
       }
@@ -2933,13 +2963,14 @@
       document.getElementById('power-pill-box').style.display = 'none';
     }
 
-    function activatePowerMode() {
+    function activatePowerMode(eater = pacman) {
       state.frightenedTimer = Math.max(3.5, state.frightenedDuration - (state.level - 1) * 0.6);
       state.ghostCombo = 0;
       sfx.powerPellet();
-      const wPos = gridToWorld(pacman.gx, pacman.gz);
+      const p = eater || pacman;
+      const wPos = gridToWorld(p.gx, p.gz);
       spawnParticles(wPos.x, 0.6, wPos.z, 0x38bdf8, 14, 1.1);
-      spawnFloatingScore('POWER!', pacModel.root.position, '#38bdf8');
+      spawnFloatingScore('POWER!', (p.name === 'pacman2' ? pacModel2 : pacModel).root.position, '#38bdf8');
       ghosts.forEach((g) => {
         if (g.state !== 'EATEN') {
           g.state = 'FRIGHTENED';
@@ -2985,6 +3016,14 @@
     // 10. PAC-MAN UPDATER (Human Controlled or AI Bot if Player chose Ghost!)
     // =========================================================================
     function updateSinglePacMan(pEntity, pModel, dt, roleName) {
+      if (pEntity.isAlive === false) {
+        pModel.root.visible = false;
+        if (roleName === 'pacman') {
+          pacGlowLight.visible = false;
+        }
+        return;
+      }
+
       if (pEntity.dashCooldown > 0) {
         pEntity.dashCooldown = Math.max(0, pEntity.dashCooldown - dt);
       }
@@ -3128,7 +3167,7 @@
 
             if (pObj.isPower) {
               if (mp.myRole === roleName) state.score += 50;
-              activatePowerMode();
+              activatePowerMode(pEntity);
             } else {
               if (mp.myRole === roleName) state.score += 10;
               sfx.chomp();
@@ -3364,6 +3403,7 @@
         if (isCollisionAuthority) {
           for (let pIdx = 0; pIdx < activePacmans.length; pIdx++) {
             const pacObj = activePacmans[pIdx];
+            if (pacObj.entity.isAlive === false) continue;
             const distToPac = Math.hypot(g.gx - pacObj.entity.gx, g.gz - pacObj.entity.gz);
             if (distToPac < 0.72) {
               if (g.state === 'FRIGHTENED') {
@@ -3394,13 +3434,39 @@
                 updateHUD();
               } else if (g.state === 'NORMAL') {
                 const nextRemainingLives = state.lives - 1;
+                const nextPac1Alive = (pacObj.role === 'pacman') ? false : (pacman.isAlive !== false);
+                const nextPac2Alive = (mp.getRoomMode() === '2v3')
+                  ? ((pacObj.role === 'pacman2') ? false : (pacman2.isAlive !== false))
+                  : false;
+                const nextSurvivingCount = (nextPac1Alive ? 1 : 0) + (nextPac2Alive ? 1 : 0);
+
+                let respawnedRoles = null;
+                if (nextSurvivingCount === 0 && nextRemainingLives > 0) {
+                  if (mp.getRoomMode() === '2v3') {
+                    if (nextRemainingLives >= 2) {
+                      respawnedRoles = ['pacman', 'pacman2'];
+                    } else {
+                      const isP1Human = (mp.myRole === 'pacman') || mp.isRoleControlledByRemoteHuman('pacman');
+                      const isP2Human = (mp.myRole === 'pacman2') || mp.isRoleControlledByRemoteHuman('pacman2');
+                      if (!isP1Human && isP2Human) {
+                        respawnedRoles = ['pacman2'];
+                      } else {
+                        respawnedRoles = ['pacman'];
+                      }
+                    }
+                  } else {
+                    respawnedRoles = ['pacman'];
+                  }
+                }
+
                 mp.broadcastWorldEvent({
                   event: 'PACMAN_HIT',
                   ghostName: g.name,
                   pacmanRole: pacObj.role,
-                  remainingLives: nextRemainingLives
+                  remainingLives: nextRemainingLives,
+                  respawnedRoles: respawnedRoles
                 });
-                handlePacManHit(false, pacObj.role, nextRemainingLives);
+                handlePacManHit(false, pacObj.role, nextRemainingLives, respawnedRoles);
                 break;
               }
             }
@@ -3470,12 +3536,14 @@
         }
       }
 
-      minimapCtx.fillStyle = '#facc15';
-      minimapCtx.beginPath();
-      minimapCtx.arc((pacman.gx + 0.5) * cellPx, (pacman.gz + 0.5) * cellPx, 3.2, 0, Math.PI * 2);
-      minimapCtx.fill();
+      if (pacman.isAlive !== false) {
+        minimapCtx.fillStyle = '#facc15';
+        minimapCtx.beginPath();
+        minimapCtx.arc((pacman.gx + 0.5) * cellPx, (pacman.gz + 0.5) * cellPx, 3.2, 0, Math.PI * 2);
+        minimapCtx.fill();
+      }
 
-      if (mp.getRoomMode() === '2v3') {
+      if (mp.getRoomMode() === '2v3' && pacman2.isAlive !== false) {
         minimapCtx.fillStyle = '#00e5ff';
         minimapCtx.beginPath();
         minimapCtx.arc((pacman2.gx + 0.5) * cellPx, (pacman2.gz + 0.5) * cellPx, 3.2, 0, Math.PI * 2);
@@ -3509,6 +3577,18 @@
         livesBox.appendChild(icon);
       }
 
+      const teamStatusEl = document.getElementById('pac-team-status');
+      if (teamStatusEl) {
+        if (mp.getRoomMode() === '2v3') {
+          teamStatusEl.style.display = 'block';
+          const p1Text = pacman.isAlive !== false ? '<span style="color:#facc15;">● P1 Sống</span>' : '<span style="color:#ef4444;">✖ P1 Bị loại</span>';
+          const p2Text = pacman2.isAlive !== false ? '<span style="color:#00e5ff;">● P2 Sống</span>' : '<span style="color:#ef4444;">✖ P2 Bị loại</span>';
+          teamStatusEl.innerHTML = `${p1Text} &nbsp;|&nbsp; ${p2Text}`;
+        } else {
+          teamStatusEl.style.display = 'none';
+        }
+      }
+
       mp.refreshLobbyUI();
     }
 
@@ -3516,6 +3596,12 @@
       const entity = getMyControlledEntity();
       const dashBar = document.getElementById('dash-bar');
       const dashText = document.getElementById('dash-status-text');
+      if (entity && entity.isAlive === false) {
+        dashBar.style.width = '0%';
+        dashBar.style.background = '#ef4444';
+        dashText.textContent = 'Bị loại - Đang quan sát';
+        return;
+      }
       if (!entity || entity.dashCooldown <= 0) {
         dashBar.style.width = '100%';
         dashBar.style.background = '#22c55e';
@@ -3531,7 +3617,7 @@
     function triggerDash() {
       if (state.status !== 'PLAYING') return;
       const entity = getMyControlledEntity();
-      if (!entity) return;
+      if (!entity || entity.isAlive === false) return;
 
       if (entity.dashCooldown <= 0 && entity.dir !== DIRS.NONE) {
         entity.dashTimer = 0.42;
@@ -3543,13 +3629,29 @@
       }
     }
 
-    function handlePacManHit(fromNetwork = false, pacmanRole = 'pacman', remainingLives = null) {
+    function handlePacManHit(fromNetwork = false, pacmanRole = 'pacman', remainingLives = null, respawnedRoles = null) {
       if (state.status !== 'PLAYING') return;
-      sfx.die();
 
       const targetPac = (pacmanRole === 'pacman2') ? pacman2 : pacman;
+      const targetModel = (pacmanRole === 'pacman2') ? pacModel2 : pacModel;
+
+      // Prevent duplicate hit logic if already dead
+      if (targetPac.isAlive === false) return;
+
+      targetPac.isAlive = false;
+      targetModel.root.visible = false;
+      if (pacmanRole === 'pacman') {
+        pacGlowLight.visible = false;
+      }
+
+      sfx.die();
       const wPos = gridToWorld(targetPac.gx, targetPac.gz);
-      spawnParticles(wPos.x, 0.7, wPos.z, pacmanRole === 'pacman2' ? 0x00e5ff : 0xfacc15, 20, 1.5);
+      spawnParticles(wPos.x, 0.7, wPos.z, pacmanRole === 'pacman2' ? 0x00e5ff : 0xfacc15, 22, 1.5);
+      spawnFloatingScore('BỊ LOẠI! 💀', targetModel.root.position, '#ef4444');
+
+      if (mp.myRole === pacmanRole) {
+        spawnFloatingScore('BẠN ĐÃ BỊ LOẠI! 👁️ QUAN SÁT ĐỒNG ĐỘI', targetModel.root.position, '#f43f5e');
+      }
 
       if (typeof remainingLives === 'number') {
         state.lives = remainingLives;
@@ -3558,6 +3660,17 @@
       }
       updateHUD();
 
+      const mode = mp.getRoomMode();
+      const isPac1Alive = (pacman.isAlive !== false);
+      const isPac2Alive = (mode === '2v3') && (pacman2.isAlive !== false);
+      const survivingCount = (isPac1Alive ? 1 : 0) + (isPac2Alive ? 1 : 0);
+
+      // If at least 1 Pac-Man remains alive, game proceeds uninterrupted for the survivor!
+      if (survivingCount > 0) {
+        return;
+      }
+
+      // Team wipe! All Pac-Mans eliminated
       if (state.lives <= 0) {
         state.status = 'GAMEOVER';
         const isPacmanTeam = (mp.myRole === 'pacman' || mp.myRole === 'pacman2');
@@ -3568,22 +3681,85 @@
           'Chơi Lại Hiệp Mới'
         );
       } else {
+        // Team has lives remaining: reset positions and respawn eligible Pac-Mans!
+        if (Array.isArray(respawnedRoles)) {
+          pacman.isAlive = respawnedRoles.includes('pacman');
+          pacman2.isAlive = respawnedRoles.includes('pacman2');
+        } else {
+          if (mode === '2v3') {
+            if (state.lives >= 2) {
+              pacman.isAlive = true;
+              pacman2.isAlive = true;
+            } else {
+              const isP1Human = (mp.myRole === 'pacman') || mp.isRoleControlledByRemoteHuman('pacman');
+              const isP2Human = (mp.myRole === 'pacman2') || mp.isRoleControlledByRemoteHuman('pacman2');
+              if (!isP1Human && isP2Human) {
+                pacman.isAlive = false;
+                pacman2.isAlive = true;
+              } else {
+                pacman.isAlive = true;
+                pacman2.isAlive = false;
+              }
+            }
+          } else {
+            pacman.isAlive = true;
+            pacman2.isAlive = false;
+          }
+        }
+
+        const respawnedAny = (pacman.isAlive ? 1 : 0) + (pacman2.isAlive ? 1 : 0);
+        if (respawnedAny === 2) {
+          spawnFloatingScore('HỒI SINH CẢ ĐỘI! 🌟', pacModel.root.position, '#38bdf8');
+        } else {
+          const respawnedModel = pacman.isAlive ? pacModel : pacModel2;
+          spawnFloatingScore(`HỒI SINH 1 PAC-MAN (CÒN ${state.lives} MẠNG)! 🌟`, respawnedModel.root.position, '#facc15');
+        }
+
         resetPositions();
+        updateHUD();
       }
     }
 
-    function handleLevelClear(fromNetwork = false) {
+    function handleLevelClear(fromNetwork = false, newLevel = null, remainingLives = null) {
       sfx.levelClear();
-      state.level++;
+      if (typeof newLevel === 'number') {
+        state.level = newLevel;
+      } else {
+        state.level++;
+      }
       state.fruitSpawnedThisLevel = false;
       state.fruitActive = false;
       fruitMesh.visible = false;
+
+      // Award extra life to the team upon clearing the level
+      if (typeof remainingLives === 'number') {
+        state.lives = remainingLives;
+      } else {
+        state.lives++;
+      }
+
+      // Any dead Pac-Man can use this extra life to revive!
+      let revivedAny = false;
+      if (pacman.isAlive === false) {
+        pacman.isAlive = true;
+        revivedAny = true;
+      }
+      if (mp.getRoomMode() === '2v3' && pacman2.isAlive === false) {
+        pacman2.isAlive = true;
+        revivedAny = true;
+      }
+
       populatePellets();
       resetPositions();
-      spawnFloatingScore(`MÀN ${state.level}! 🎉`, pacModel.root.position, '#22c55e');
+      spawnFloatingScore(`MÀN ${state.level}! 🎉${revivedAny ? ' (HỒI SINH ĐỒNG ĐỘI 💖)' : ''}`, pacModel.root.position, '#22c55e');
       updateHUD();
+
       if (!fromNetwork && mp.roomCode) {
-        mp.broadcastWorldEvent({ event: 'LEVEL_CLEAR', level: state.level });
+        mp.broadcastWorldEvent({
+          event: 'LEVEL_CLEAR',
+          level: state.level,
+          remainingLives: state.lives
+        });
       }
     }
 
@@ -3642,7 +3818,7 @@
       if (!d) return;
 
       const entity = getMyControlledEntity();
-      if (!entity) return;
+      if (!entity || entity.isAlive === false) return;
 
       entity.nextDir = d;
       if (entity.dir === DIRS.NONE) {
@@ -3779,6 +3955,8 @@
     function startMatchFromLobby(broadcast = true) {
       sfx.init();
       mp.syncNameFromInput();
+      pacman.isAlive = true;
+      pacman2.isAlive = true;
       if (state.status === 'MENU' || state.status === 'GAMEOVER') {
         state.score = 0;
         state.level = 1;
