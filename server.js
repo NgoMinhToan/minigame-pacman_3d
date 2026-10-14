@@ -98,13 +98,24 @@ const wss = new WebSocketServer({ server });
 // In-memory rooms store: { [roomCode]: { code, hostId, status, level, score, players: { [id]: { id, name, role, gx, gz, dirName, score } } } }
 const rooms = {};
 
+function getRolesForMode(mode) {
+  if (mode === '1v3') return ['pacman', 'Blinky', 'Pinky', 'Inky'];
+  if (mode === '2v3') return ['pacman', 'pacman2', 'Blinky', 'Pinky', 'Inky'];
+  return ['pacman', 'Blinky', 'Pinky', 'Inky', 'Clyde'];
+}
+
 function broadcastRoomList() {
-  const summary = Object.values(rooms).map((r) => ({
-    code: r.code,
-    status: r.status,
-    playerCount: Object.keys(r.players).length,
-    rolesTaken: Object.values(r.players).map((p) => p.role)
-  }));
+  const summary = Object.values(rooms).map((r) => {
+    const validRoles = getRolesForMode(r.settings?.mode);
+    return {
+      code: r.code,
+      status: r.status,
+      playerCount: Object.keys(r.players).length,
+      maxPlayers: validRoles.length,
+      rolesTaken: Object.values(r.players).map((p) => p.role),
+      settings: r.settings || { mode: '1v4', pacmanLives: 3, syncInterval: 150 }
+    };
+  });
   const payload = JSON.stringify({ type: 'ROOM_LIST', rooms: summary });
   wss.clients.forEach((client) => {
     if (client.readyState === 1) client.send(payload);
@@ -142,6 +153,7 @@ function getSanitizedRoom(room) {
     hostId: room.hostId,
     status: room.status,
     level: room.level,
+    settings: room.settings || { mode: '1v4', pacmanLives: 3, syncInterval: 150 },
     players
   };
 }
@@ -172,11 +184,20 @@ wss.on('connection', (ws) => {
       if (!roomCode || !playerId) return;
 
       if (type === 'CREATE_ROOM' && !rooms[roomCode]) {
+        const mode = ['1v4', '1v3', '2v3'].includes(data.mode) ? data.mode : '1v4';
+        const pacmanLives = [1, 2, 3, 5].includes(Number(data.pacmanLives)) ? Number(data.pacmanLives) : 3;
+        const syncInterval = Math.max(100, Math.min(300, Number(data.syncInterval) || 150));
+
         rooms[roomCode] = {
           code: roomCode,
           hostId: playerId,
           status: 'LOBBY',
           level: 1,
+          settings: {
+            mode,
+            pacmanLives,
+            syncInterval
+          },
           players: {}
         };
       }
@@ -190,20 +211,20 @@ wss.on('connection', (ws) => {
         return;
       }
 
-      // Check if desiredRole is already taken by another player in this room
-      const ALL_ROLES = ['pacman', 'Blinky', 'Pinky', 'Inky', 'Clyde'];
+      // Check if desiredRole is valid and available in this room mode
+      const validRoles = getRolesForMode(room.settings?.mode);
       const takenByOthers = new Set(
         Object.values(room.players)
           .filter((p) => p.id !== playerId)
           .map((p) => p.role)
       );
 
-      if (takenByOthers.has(desiredRole)) {
-        const freeRole = ALL_ROLES.find((r) => !takenByOthers.has(r));
+      if (!validRoles.includes(desiredRole) || takenByOthers.has(desiredRole)) {
+        const freeRole = validRoles.find((r) => !takenByOthers.has(r));
         if (!freeRole) {
           ws.send(JSON.stringify({
             type: 'ERROR',
-            message: `Phòng "${roomCode}" đã đủ 5/5 người chơi!`
+            message: `Phòng "${roomCode}" đã đủ ${validRoles.length}/${validRoles.length} người chơi!`
           }));
           return;
         }
@@ -213,12 +234,15 @@ wss.on('connection', (ws) => {
       currentClientId = playerId;
       currentRoomCode = roomCode;
 
+      const initGx = desiredRole === 'pacman2' ? 11 : 10;
+      const initGz = (desiredRole === 'pacman' || desiredRole === 'pacman2') ? 16 : 8;
+
       room.players[playerId] = {
         id: playerId,
         name: playerName,
         role: desiredRole,
-        gx: desiredRole === 'pacman' ? 10 : 10,
-        gz: desiredRole === 'pacman' ? 16 : 8,
+        gx: initGx,
+        gz: initGz,
         dirName: 'NONE',
         score: 0,
         ws
@@ -229,10 +253,50 @@ wss.on('connection', (ws) => {
       broadcastRoomList();
     }
 
+    else if (type === 'UPDATE_SETTINGS') {
+      const room = rooms[currentRoomCode];
+      if (!room || room.hostId !== currentClientId || room.status !== 'LOBBY') return;
+      if (data.settings) {
+        if (['1v4', '1v3', '2v3'].includes(data.settings.mode)) {
+          room.settings.mode = data.settings.mode;
+        }
+        if ([1, 2, 3, 5].includes(Number(data.settings.pacmanLives))) {
+          room.settings.pacmanLives = Number(data.settings.pacmanLives);
+        }
+        if (typeof data.settings.syncInterval === 'number') {
+          room.settings.syncInterval = Math.max(100, Math.min(300, Number(data.settings.syncInterval)));
+        }
+
+        // Re-verify existing players roles if mode changed
+        const validRoles = getRolesForMode(room.settings.mode);
+        const taken = new Set();
+        Object.values(room.players).forEach((p) => {
+          if (!validRoles.includes(p.role) || taken.has(p.role)) {
+            const freeRole = validRoles.find((r) => !taken.has(r));
+            if (freeRole) {
+              p.role = freeRole;
+              taken.add(freeRole);
+            }
+          } else {
+            taken.add(p.role);
+          }
+        });
+
+        broadcastToRoom(currentRoomCode, {
+          type: 'ROOM_STATE',
+          room: getSanitizedRoom(room)
+        });
+        broadcastRoomList();
+      }
+    }
+
     else if (type === 'SELECT_ROLE') {
       const room = rooms[currentRoomCode];
       if (!room || !currentClientId || !room.players[currentClientId]) return;
       const newRole = data.role;
+      const validRoles = getRolesForMode(room.settings?.mode);
+      if (!validRoles.includes(newRole)) return;
+
       const taken = Object.values(room.players).some(
         (p) => p.id !== currentClientId && p.role === newRole
       );

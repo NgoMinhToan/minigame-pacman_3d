@@ -18,10 +18,17 @@
 
 - **Đồ Họa 3D Diorama:** Xây dựng trên Three.js với hiệu ứng ánh sáng, bóng đổ mượt mà và phong cách đồ chơi diorama độc đáo.
 - **Multiplayer Thời Gian Thực:** Sử dụng WebSocket Server chuyên dụng, tự động kết nối ngay khi mở game và đồng bộ vị trí, hạt đậu, điểm số giữa các người chơi.
-- **Hệ Thống 5 Vai Trò:** Hóa thân thành **Pac-Man** hoặc 1 trong **4 Bóng Ma (Blinky, Pinky, Inky, Clyde)**. Bất kỳ vị trí trống nào trong phòng sẽ tự động có AI Bot điều khiển.
+- **3 Chế Độ Trận Đấu Linh Hoạt:**
+  - **1 vs 4:** 1 Pac-Man đối đầu 4 Bóng Ma (Blinky, Pinky, Inky, Clyde).
+  - **1 vs 3:** 1 Pac-Man đối đầu 3 Bóng Ma (Blinky, Pinky, Inky).
+  - **2 vs 3 (Co-op):** 2 Pac-Man (Pac-Man Vàng & Pac-Man 2 Xanh) cùng hợp lực đối đầu 3 Bóng Ma với **Quỹ mạng dùng chung**.
+- **Cài Đặt Phòng Tùy Biến (Dành Cho Host):**
+  - **Tùy chỉnh số mạng khởi đầu:** 1, 2, 3, hoặc 5 mạng cho đội Pac-Man.
+  - **Tốc độ đồng bộ mạng linh hoạt:** Điều chỉnh tần suất gửi gói tin từ 100ms đến 300ms, tự động điều chỉnh hệ số nội suy Lerp thích ứng giúp di chuyển luôn mượt mà ngay cả khi kết nối mạng không ổn định.
+- **Cơ Chế Đồng Bộ Host Authority:** Chỉ định Host làm trọng tài duy nhất cho các sự kiện va chạm và bot AI, loại bỏ hoàn toàn hiện tượng lệch số mạng (desync) giữa các người chơi.
 - **Tùy Biến Trực Quan:**
-  - **4 Góc nhìn Camera:** WoraWork Follow, Isometric 3D, Top-down Cổ điển, Góc nhìn thứ nhất (FPS).
-  - **Đa chủ đề:** Đảo Đồ Chơi 3D, Neon Synthwave, Retro Arcade...
+  - **Góc nhìn Camera:** WoraWork Follow, Toàn Cảnh 3D, Isometric 45°.
+  - **Đa chủ đề:** Đảo Đồ Chơi 3D, Neon Synthwave Arcade...
   - **Kỹ năng Dash:** Nhấn `Space` để kích hoạt lướt nhanh / tốc biến né ma hoặc săn Pac-Man.
 
 ---

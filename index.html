@@ -920,31 +920,37 @@
           <span id="selected-role-hint" style="color:#b45309;">Đang chọn: PAC-MAN</span>
         </div>
         <div class="roles-grid" id="roles-grid">
-          <div class="role-card selected" data-role="pacman">
+          <div class="role-card selected" data-role="pacman" id="card-pacman">
             <div class="role-avatar" style="background:#facc15;">😮</div>
             <span class="role-name">PAC-MAN</span>
             <span class="role-sub">Ăn hạt &amp; Săn ma</span>
             <span class="role-owner" id="owner-pacman">Bạn chọn</span>
           </div>
-          <div class="role-card" data-role="Blinky">
+          <div class="role-card" data-role="pacman2" id="card-pacman2" style="display:none;">
+            <div class="role-avatar" style="background:#06b6d4; color:#fff;">😮</div>
+            <span class="role-name">PAC-MAN 2</span>
+            <span class="role-sub">Pac-Man Xanh Hợp Lực</span>
+            <span class="role-owner" id="owner-pacman2">AI Bot</span>
+          </div>
+          <div class="role-card" data-role="Blinky" id="card-Blinky">
             <div class="role-avatar" style="background:#ef4444; color:#fff;">👻</div>
             <span class="role-name">BLINKY</span>
             <span class="role-sub">Ma Đỏ Tốc Độ</span>
             <span class="role-owner" id="owner-Blinky">AI Bot</span>
           </div>
-          <div class="role-card" data-role="Pinky">
+          <div class="role-card" data-role="Pinky" id="card-Pinky">
             <div class="role-avatar" style="background:#f472b6; color:#fff;">👻</div>
             <span class="role-name">PINKY</span>
             <span class="role-sub">Ma Hồng Đón Đầu</span>
             <span class="role-owner" id="owner-Pinky">AI Bot</span>
           </div>
-          <div class="role-card" data-role="Inky">
+          <div class="role-card" data-role="Inky" id="card-Inky">
             <div class="role-avatar" style="background:#38bdf8; color:#fff;">👻</div>
             <span class="role-name">INKY</span>
             <span class="role-sub">Ma Xanh Bọc Sườn</span>
             <span class="role-owner" id="owner-Inky">AI Bot</span>
           </div>
-          <div class="role-card" data-role="Clyde">
+          <div class="role-card" data-role="Clyde" id="card-Clyde">
             <div class="role-avatar" style="background:#f97316; color:#fff;">👻</div>
             <span class="role-name">CLYDE</span>
             <span class="role-sub">Ma Cam Hộ Vệ</span>
@@ -953,10 +959,46 @@
         </div>
       </div>
 
+      <!-- Step 2.5: Room & Match Settings (Configurable by Host) -->
+      <div class="lobby-section" id="lobby-settings-section">
+        <div class="section-title">
+          <span>3. Cài Đặt Phòng Trận Đấu</span>
+          <span id="settings-status-badge" style="color:#059669; font-weight:700;">👑 Host điều chỉnh</span>
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px; margin-top:8px;">
+          <div style="background:#f8fafc; border:2px solid #e2e8f0; border-radius:8px; padding:8px 10px;">
+            <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:4px; text-transform:uppercase;">🎮 Chế độ vai trò:</label>
+            <select id="select-game-mode" class="brutal-input" style="width:100%; height:32px; padding:2px 6px; font-size:12px; font-weight:700; cursor:pointer;">
+              <option value="1v4">1 vs 4 (1 Pac-Man, 4 Ma)</option>
+              <option value="1v3">1 vs 3 (1 Pac-Man, 3 Ma)</option>
+              <option value="2v3">2 vs 3 (2 Pac-Man, 3 Ma)</option>
+            </select>
+          </div>
+          <div style="background:#f8fafc; border:2px solid #e2e8f0; border-radius:8px; padding:8px 10px;">
+            <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:4px; text-transform:uppercase;">❤️ Mạng Đội Pac-Man:</label>
+            <select id="select-pacman-lives" class="brutal-input" style="width:100%; height:32px; padding:2px 6px; font-size:12px; font-weight:700; cursor:pointer;">
+              <option value="1">1 Mạng (Thử thách)</option>
+              <option value="2">2 Mạng</option>
+              <option value="3" selected>3 Mạng (Mặc định)</option>
+              <option value="5">5 Mạng (Dễ hơn)</option>
+            </select>
+          </div>
+          <div style="background:#f8fafc; border:2px solid #e2e8f0; border-radius:8px; padding:8px 10px;">
+            <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:4px; text-transform:uppercase;">⏱️ Tốc độ gửi vị trí:</label>
+            <select id="select-sync-interval" class="brutal-input" style="width:100%; height:32px; padding:2px 6px; font-size:12px; font-weight:700; cursor:pointer;">
+              <option value="100">100 ms (10 Hz)</option>
+              <option value="150" selected>150 ms (~7 Hz - Chuẩn)</option>
+              <option value="200">200 ms (5 Hz)</option>
+              <option value="300">300 ms (~3.3 Hz - Tiết kiệm)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       <!-- Step 3: Create Room or Join Room -->
       <div class="lobby-section">
         <div class="section-title">
-          <span>3. Tạo Phòng Mới Hoặc Nhập Mã Vào Phòng</span>
+          <span>4. Tạo Phòng Mới Hoặc Nhập Mã Vào Phòng</span>
           <span id="room-status-badge" style="color:#1d4ed8;">Chế độ: Sẵn sàng lập phòng</span>
         </div>
         <div class="room-actions-grid">
@@ -1131,14 +1173,21 @@
     };
 
     const CARDINAL_DIRS = [DIRS.UP, DIRS.LEFT, DIRS.DOWN, DIRS.RIGHT];
-    const ALL_ROLES = ['pacman', 'Blinky', 'Pinky', 'Inky', 'Clyde'];
+    const ALL_ROLES = ['pacman', 'pacman2', 'Blinky', 'Pinky', 'Inky', 'Clyde'];
     const ROLE_COLORS = {
       pacman: '#facc15',
+      pacman2: '#00e5ff',
       Blinky: '#ef4444',
       Pinky: '#f472b6',
       Inky: '#38bdf8',
       Clyde: '#f97316'
     };
+
+    function getActiveRoles(mode = '1v4') {
+      if (mode === '1v3') return ['pacman', 'Blinky', 'Pinky', 'Inky'];
+      if (mode === '2v3') return ['pacman', 'pacman2', 'Blinky', 'Pinky', 'Inky'];
+      return ['pacman', 'Blinky', 'Pinky', 'Inky', 'Clyde'];
+    }
 
     // =========================================================================
     // 3. THREE.JS DIORAMA SCENE
@@ -1421,13 +1470,13 @@
     // =========================================================================
     // 5. CHARACTER MODELS & FLOATING NAMEPLATES
     // =========================================================================
-    function createPacManMesh() {
+    function createPacManMesh(hexColor = 0xfacc15) {
       const root = new THREE.Group();
       const bodyGroup = new THREE.Group();
       root.add(bodyGroup);
 
       const pacMat = new THREE.MeshStandardMaterial({
-        color: 0xfacc15,
+        color: hexColor,
         roughness: 0.22,
         metalness: 0.1
       });
@@ -1463,7 +1512,8 @@
         upperJaw.add(eye, glint);
       });
 
-      const cheekMat = new THREE.MeshBasicMaterial({ color: 0xf97316 });
+      const cheekColor = hexColor === 0x00e5ff ? 0x0284c7 : 0xf97316;
+      const cheekMat = new THREE.MeshBasicMaterial({ color: cheekColor });
       [-0.52, 0.52].forEach((cx) => {
         const cheek = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), cheekMat);
         cheek.scale.set(1.2, 0.6, 0.5);
@@ -1474,7 +1524,7 @@
       bodyGroup.add(upperJaw, lowerJaw);
       bodyGroup.position.y = 0.85;
 
-      return { root, bodyGroup, upperJaw, lowerJaw };
+      return { root, bodyGroup, upperJaw, lowerJaw, mat: pacMat };
     }
 
     function createGhostMesh(hexColor) {
@@ -1557,7 +1607,7 @@
       return group;
     }
 
-    // Create 5 Floating Nameplate DOM Elements
+    // Create Floating Nameplate DOM Elements for all potential roles
     const nameplatesLayer = document.getElementById('nameplates-layer');
     const nameplateEls = {};
     ALL_ROLES.forEach((role) => {
@@ -1568,53 +1618,15 @@
       nameplateEls[role] = el;
     });
 
-    function updateNameplates() {
-      const roleMeshes = {
-        pacman: pacModel.root,
-        Blinky: ghosts[0].mesh.root,
-        Pinky: ghosts[1].mesh.root,
-        Inky: ghosts[2].mesh.root,
-        Clyde: ghosts[3].mesh.root
-      };
-
-      const rolePlayers = mp.getRolePlayersMap();
-
-      ALL_ROLES.forEach((role) => {
-        const el = nameplateEls[role];
-        const mesh = roleMeshes[role];
-        if (!el || !mesh) return;
-
-        const playerInfo = rolePlayers[role];
-        const isLocalRole = (mp.myRole === role);
-        const labelText = playerInfo
-          ? `${playerInfo.name}${isLocalRole ? ' (Bạn)' : ''}`
-          : (isLocalRole ? `${mp.playerName} (Bạn)` : `${role} [AI]`);
-
-        el.querySelector('.np-text').textContent = labelText;
-        el.style.borderColor = isLocalRole ? '#facc15' : (playerInfo ? '#4ade80' : 'rgba(255,255,255,0.65)');
-        el.style.opacity = playerInfo || isLocalRole ? '1' : '0.72';
-
-        const vec = mesh.position.clone();
-        vec.y += 2.15;
-        vec.project(camera);
-
-        if (vec.z > 1) {
-          el.style.display = 'none';
-        } else {
-          el.style.display = 'flex';
-          const x = (vec.x * 0.5 + 0.5) * window.innerWidth;
-          const y = (-(vec.y * 0.5) + 0.5) * window.innerHeight;
-          el.style.left = `${x}px`;
-          el.style.top = `${y}px`;
-        }
-      });
-    }
-
     // =========================================================================
     // 6. GAME STATE & ENTITIES
     // =========================================================================
-    const pacModel = createPacManMesh();
+    const pacModel = createPacManMesh(0xfacc15);
     scene.add(pacModel.root);
+
+    const pacModel2 = createPacManMesh(0x00e5ff);
+    pacModel2.root.visible = false;
+    scene.add(pacModel2.root);
 
     const fruitMesh = createFruitMesh();
     fruitMesh.visible = false;
@@ -1650,6 +1662,55 @@
       };
     });
 
+    function updateNameplates() {
+      const roleMeshes = {
+        pacman: pacModel.root,
+        pacman2: pacModel2.root,
+        Blinky: ghosts[0].mesh.root,
+        Pinky: ghosts[1].mesh.root,
+        Inky: ghosts[2].mesh.root,
+        Clyde: ghosts[3].mesh.root
+      };
+
+      const activeRoles = getActiveRoles(mp.getRoomMode());
+      const rolePlayers = mp.getRolePlayersMap();
+
+      ALL_ROLES.forEach((role) => {
+        const el = nameplateEls[role];
+        const mesh = roleMeshes[role];
+        if (!el || !mesh) return;
+
+        if (!activeRoles.includes(role)) {
+          el.style.display = 'none';
+          return;
+        }
+
+        const playerInfo = rolePlayers[role];
+        const isLocalRole = (mp.myRole === role);
+        const labelText = playerInfo
+          ? `${playerInfo.name}${isLocalRole ? ' (Bạn)' : ''}`
+          : (isLocalRole ? `${mp.playerName} (Bạn)` : `${role} [AI]`);
+
+        el.querySelector('.np-text').textContent = labelText;
+        el.style.borderColor = isLocalRole ? '#facc15' : (playerInfo ? '#4ade80' : 'rgba(255,255,255,0.65)');
+        el.style.opacity = playerInfo || isLocalRole ? '1' : '0.72';
+
+        const vec = mesh.position.clone();
+        vec.y += 2.15;
+        vec.project(camera);
+
+        if (vec.z > 1) {
+          el.style.display = 'none';
+        } else {
+          el.style.display = 'flex';
+          const x = (vec.x * 0.5 + 0.5) * window.innerWidth;
+          const y = (-(vec.y * 0.5) + 0.5) * window.innerHeight;
+          el.style.left = `${x}px`;
+          el.style.top = `${y}px`;
+        }
+      });
+    }
+
     const state = {
       status: 'MENU', // MENU, PLAYING, PAUSED, GAMEOVER
       score: 0,
@@ -1669,6 +1730,7 @@
     };
 
     const pacman = {
+      name: 'pacman',
       gx: 10,
       gz: 16,
       dir: DIRS.NONE,
@@ -1676,7 +1738,27 @@
       baseSpeed: 5.5,
       dashTimer: 0,
       dashCooldown: 0,
-      mouthPhase: 0
+      mouthPhase: 0,
+      hasTarget: false,
+      targetGx: 10,
+      targetGz: 16,
+      targetDir: DIRS.NONE
+    };
+
+    const pacman2 = {
+      name: 'pacman2',
+      gx: 11,
+      gz: 16,
+      dir: DIRS.NONE,
+      nextDir: DIRS.NONE,
+      baseSpeed: 5.5,
+      dashTimer: 0,
+      dashCooldown: 0,
+      mouthPhase: 0,
+      hasTarget: false,
+      targetGx: 11,
+      targetGz: 16,
+      targetDir: DIRS.NONE
     };
 
     // =========================================================================
@@ -1689,16 +1771,75 @@
         this.myRole = 'pacman';
         this.roomCode = '';
         this.isHost = true;
+        this.roomSettings = { mode: '1v4', pacmanLives: 3, syncInterval: 150 };
         this.ws = null;
         this.wsConnected = false;
         this.lastWsUrl = '';
         this.reconnectTimer = null;
         this.bc = null;
-        this.roomsCatalog = {}; // { [code]: { code, hostId, status, players: { [id]: { id, name, role, score } } } }
+        this.roomsCatalog = {}; // { [code]: { code, hostId, status, settings, players: { [id]: { id, name, role, score } } } }
         this.lastSyncSent = 0;
         this.lastBotsSyncSent = 0;
 
         this.initBroadcastChannel();
+      }
+
+      getRoomSettings() {
+        const room = this.roomsCatalog[this.roomCode];
+        return (room && room.settings) || this.roomSettings;
+      }
+
+      getRoomMode() {
+        return this.getRoomSettings().mode || '1v4';
+      }
+
+      getPacmanLives() {
+        return Number(this.getRoomSettings().pacmanLives) || 3;
+      }
+
+      getSyncInterval() {
+        return Number(this.getRoomSettings().syncInterval) || 150;
+      }
+
+      updateSettings(newSettings) {
+        if (!this.isHost) return;
+        const current = this.getRoomSettings();
+        const updated = {
+          mode: ['1v4', '1v3', '2v3'].includes(newSettings.mode) ? newSettings.mode : (current.mode || '1v4'),
+          pacmanLives: [1, 2, 3, 5].includes(Number(newSettings.pacmanLives)) ? Number(newSettings.pacmanLives) : (current.pacmanLives || 3),
+          syncInterval: typeof newSettings.syncInterval === 'number'
+            ? Math.max(100, Math.min(300, newSettings.syncInterval))
+            : (current.syncInterval || 150)
+        };
+        this.roomSettings = updated;
+        const room = this.roomsCatalog[this.roomCode];
+        if (room) {
+          room.settings = updated;
+          const validRoles = getActiveRoles(updated.mode);
+          const taken = new Set();
+          Object.values(room.players).forEach((p) => {
+            if (!validRoles.includes(p.role) || taken.has(p.role)) {
+              const free = validRoles.find((r) => !taken.has(r));
+              if (free) {
+                p.role = free;
+                taken.add(free);
+              }
+            } else {
+              taken.add(p.role);
+            }
+          });
+          if (room.players[this.playerId]) {
+            this.myRole = room.players[this.playerId].role;
+          }
+        }
+        if (this.roomCode) {
+          this.sendRaw({
+            type: 'UPDATE_SETTINGS',
+            roomCode: this.roomCode,
+            settings: updated
+          });
+        }
+        this.refreshLobbyUI();
       }
 
       initBroadcastChannel() {
@@ -1820,11 +1961,27 @@
         this.roomCode = code;
         this.isHost = true;
 
+        const modeEl = document.getElementById('select-game-mode');
+        const livesEl = document.getElementById('select-pacman-lives');
+        const syncEl = document.getElementById('select-sync-interval');
+
+        const mode = modeEl ? modeEl.value : (this.roomSettings.mode || '1v4');
+        const pacmanLives = livesEl ? Number(livesEl.value) : (this.roomSettings.pacmanLives || 3);
+        const syncInterval = syncEl ? Number(syncEl.value) : (this.roomSettings.syncInterval || 150);
+
+        this.roomSettings = { mode, pacmanLives, syncInterval };
+
+        const validRoles = getActiveRoles(mode);
+        if (!validRoles.includes(this.myRole)) {
+          this.myRole = validRoles[0];
+        }
+
         const roomObj = {
           code,
           hostId: this.playerId,
           status: 'LOBBY',
           level: state.level,
+          settings: { ...this.roomSettings },
           players: {
             [this.playerId]: {
               id: this.playerId,
@@ -1844,6 +2001,9 @@
           playerId: this.playerId,
           playerName: this.playerName,
           role: this.myRole,
+          mode,
+          pacmanLives,
+          syncInterval,
           room: roomObj
         });
 
@@ -1864,15 +2024,19 @@
         const existing = this.roomsCatalog[code];
         if (existing) {
           this.isHost = (existing.hostId === this.playerId);
+          if (existing.settings) {
+            this.roomSettings = existing.settings;
+          }
+          const validRoles = getActiveRoles(existing.settings?.mode);
           const takenByOthers = new Set(
             Object.values(existing.players)
               .filter((p) => p.id !== this.playerId)
               .map((p) => p.role)
           );
-          if (takenByOthers.has(this.myRole)) {
-            const free = ALL_ROLES.find((r) => !takenByOthers.has(r));
+          if (!validRoles.includes(this.myRole) || takenByOthers.has(this.myRole)) {
+            const free = validRoles.find((r) => !takenByOthers.has(r));
             if (!free) {
-              showLobbyAlert(`Phòng ${code} đã đầy 5/5 người chơi!`);
+              showLobbyAlert(`Phòng ${code} đã đầy ${validRoles.length}/${validRoles.length} người chơi!`);
               return;
             }
             this.myRole = free;
@@ -1892,6 +2056,7 @@
             hostId: this.playerId,
             status: 'LOBBY',
             level: 1,
+            settings: { ...this.roomSettings },
             players: {
               [this.playerId]: {
                 id: this.playerId,
@@ -1917,7 +2082,8 @@
       }
 
       selectRole(roleName) {
-        if (!ALL_ROLES.includes(roleName)) return;
+        const validRoles = getActiveRoles(this.getRoomMode());
+        if (!validRoles.includes(roleName)) return;
         this.syncNameFromInput();
 
         const room = this.roomsCatalog[this.roomCode];
@@ -1990,7 +2156,8 @@
       broadcastMyPosition() {
         if (!this.roomCode) return;
         const now = performance.now();
-        if (now - this.lastSyncSent < 30) return;
+        const syncInterval = this.getSyncInterval();
+        if (now - this.lastSyncSent < syncInterval) return;
         this.lastSyncSent = now;
 
         const entity = getMyControlledEntity();
@@ -2002,8 +2169,8 @@
           playerId: this.playerId,
           playerName: this.playerName,
           role: this.myRole,
-          gx: entity.gx,
-          gz: entity.gz,
+          gx: Number(entity.gx.toFixed(3)),
+          gz: Number(entity.gz.toFixed(3)),
           dirName: entity.dir ? entity.dir.name : 'NONE',
           dashTimer: entity.dashTimer || 0,
           score: state.score
@@ -2013,17 +2180,24 @@
       broadcastBotsPosition() {
         if (!this.roomCode || !this.isHost) return;
         const now = performance.now();
-        if (now - this.lastBotsSyncSent < 45) return;
+        const syncInterval = this.getSyncInterval();
+        if (now - this.lastBotsSyncSent < syncInterval) return;
         this.lastBotsSyncSent = now;
 
-        const isRemotePacMan = this.isRoleControlledByRemoteHuman('pacman');
-        const isBotPacMan = (this.myRole !== 'pacman') && !isRemotePacMan;
+        const mode = this.getRoomMode();
+        const validRoles = getActiveRoles(mode);
+
+        const isRemotePacMan1 = this.isRoleControlledByRemoteHuman('pacman');
+        const isBotPacMan1 = (this.myRole !== 'pacman') && !isRemotePacMan1;
+
+        const isRemotePacMan2 = this.isRoleControlledByRemoteHuman('pacman2');
+        const isBotPacMan2 = (mode === '2v3') && (this.myRole !== 'pacman2') && !isRemotePacMan2;
 
         const botGhosts = ghosts.filter(
-          (g) => g.name !== this.myRole && !this.isRoleControlledByRemoteHuman(g.name)
+          (g) => validRoles.includes(g.name) && g.name !== this.myRole && !this.isRoleControlledByRemoteHuman(g.name)
         );
 
-        if (botGhosts.length === 0 && !isBotPacMan) return;
+        if (botGhosts.length === 0 && !isBotPacMan1 && !isBotPacMan2) return;
 
         this.sendRaw({
           type: 'BOTS_SYNC',
@@ -2037,11 +2211,17 @@
               state: g.state,
               inHouse: g.inHouse
             })),
-            pacman: isBotPacMan ? {
+            pacman: isBotPacMan1 ? {
               gx: Number(pacman.gx.toFixed(3)),
               gz: Number(pacman.gz.toFixed(3)),
               dirName: pacman.dir ? pacman.dir.name : 'NONE',
               dashTimer: pacman.dashTimer || 0
+            } : null,
+            pacman2: isBotPacMan2 ? {
+              gx: Number(pacman2.gx.toFixed(3)),
+              gz: Number(pacman2.gz.toFixed(3)),
+              dirName: pacman2.dir ? pacman2.dir.name : 'NONE',
+              dashTimer: pacman2.dashTimer || 0
             } : null
           }
         });
@@ -2080,14 +2260,15 @@
         else if (data.type === 'JOIN_ROOM' && source === 'bc') {
           const room = this.roomsCatalog[data.roomCode];
           if (room) {
+            const validRoles = getActiveRoles(room.settings?.mode);
             const taken = new Set(
               Object.values(room.players)
                 .filter((p) => p.id !== data.playerId)
                 .map((p) => p.role)
             );
             let assignedRole = data.role;
-            if (taken.has(assignedRole)) {
-              assignedRole = ALL_ROLES.find((r) => !taken.has(r)) || assignedRole;
+            if (!validRoles.includes(assignedRole) || taken.has(assignedRole)) {
+              assignedRole = validRoles.find((r) => !taken.has(r)) || assignedRole;
             }
             room.players[data.playerId] = {
               id: data.playerId,
@@ -2112,8 +2293,23 @@
           }
         }
 
+        else if (data.type === 'UPDATE_SETTINGS') {
+          if (data.roomCode && this.roomsCatalog[data.roomCode] && data.settings) {
+            this.roomsCatalog[data.roomCode].settings = data.settings;
+          }
+          if (this.roomCode && this.roomCode === data.roomCode && data.settings) {
+            this.roomSettings = data.settings;
+          }
+          this.refreshLobbyUI();
+        }
+
         else if (data.type === 'ROOM_STATE' && data.room) {
           this.roomsCatalog[data.room.code] = data.room;
+          if (data.room.settings) {
+            if (this.roomCode === data.room.code) {
+              this.roomSettings = data.room.settings;
+            }
+          }
           if (this.roomCode === data.room.code) {
             const me = data.room.players[this.playerId];
             if (me) {
@@ -2131,6 +2327,9 @@
         else if (data.type === 'START_MATCH') {
           if (data.room && data.room.code === this.roomCode) {
             this.roomsCatalog[this.roomCode] = data.room;
+            if (data.room.settings) {
+              this.roomSettings = data.room.settings;
+            }
             startMatchFromLobby(false);
           }
         }
@@ -2155,7 +2354,17 @@
               pacman.gz = data.gz;
               pacman.hasTarget = true;
             }
-          } else if (data.role !== 'pacman' && this.myRole !== data.role) {
+          } else if (data.role === 'pacman2' && this.myRole !== 'pacman2') {
+            pacman2.targetGx = data.gx;
+            pacman2.targetGz = data.gz;
+            pacman2.targetDir = DIRS[data.dirName] || pacman2.dir;
+            pacman2.dashTimer = data.dashTimer || 0;
+            if (!pacman2.hasTarget) {
+              pacman2.gx = data.gx;
+              pacman2.gz = data.gz;
+              pacman2.hasTarget = true;
+            }
+          } else if (data.role !== 'pacman' && data.role !== 'pacman2' && this.myRole !== data.role) {
             const g = ghosts.find((gh) => gh.name === data.role);
             if (g) {
               g.targetGx = data.gx;
@@ -2207,6 +2416,17 @@
                 pacman.hasTarget = true;
               }
             }
+            if (data.bots.pacman2 && this.myRole !== 'pacman2' && !this.isRoleControlledByRemoteHuman('pacman2')) {
+              pacman2.targetGx = data.bots.pacman2.gx;
+              pacman2.targetGz = data.bots.pacman2.gz;
+              pacman2.targetDir = DIRS[data.bots.pacman2.dirName] || pacman2.dir;
+              pacman2.dashTimer = data.bots.pacman2.dashTimer || 0;
+              if (!pacman2.hasTarget) {
+                pacman2.gx = data.bots.pacman2.gx;
+                pacman2.gz = data.bots.pacman2.gz;
+                pacman2.hasTarget = true;
+              }
+            }
           }
         }
 
@@ -2230,7 +2450,7 @@
               sfx.eatGhost();
             }
           } else if (data.event === 'PACMAN_HIT') {
-            handlePacManHit(true);
+            handlePacManHit(true, data.pacmanRole || 'pacman', data.remainingLives);
           } else if (data.event === 'FRUIT_EATEN') {
             state.fruitActive = false;
             fruitMesh.visible = false;
@@ -2253,20 +2473,53 @@
         }
         listEl.innerHTML = '';
         roomSummaries.forEach((r) => {
+          const mode = r.settings?.mode || '1v4';
+          const maxP = r.maxPlayers || getActiveRoles(mode).length;
           const btn = document.createElement('button');
           btn.className = 'room-pill-btn';
-          btn.textContent = `#${r.code} (${r.playerCount}/5)`;
+          btn.textContent = `#${r.code} (${r.playerCount}/${maxP}) [${mode}]`;
           btn.onclick = () => this.joinRoom(r.code);
           listEl.appendChild(btn);
         });
       }
 
       refreshLobbyUI() {
+        const mode = this.getRoomMode();
+        const activeRoles = getActiveRoles(mode);
         const rolePlayers = this.getRolePlayersMap();
+        const isHost = !this.roomCode || this.isHost;
 
-        // Update Role Cards
+        // Sync and enable/disable Settings dropdowns
+        const modeSelect = document.getElementById('select-game-mode');
+        const livesSelect = document.getElementById('select-pacman-lives');
+        const syncSelect = document.getElementById('select-sync-interval');
+        const settingsBadge = document.getElementById('settings-status-badge');
+
+        const currentSettings = this.getRoomSettings();
+        if (modeSelect) {
+          modeSelect.value = currentSettings.mode || '1v4';
+          modeSelect.disabled = !isHost;
+        }
+        if (livesSelect) {
+          livesSelect.value = String(currentSettings.pacmanLives || 3);
+          livesSelect.disabled = !isHost;
+        }
+        if (syncSelect) {
+          syncSelect.value = String(currentSettings.syncInterval || 150);
+          syncSelect.disabled = !isHost;
+        }
+        if (settingsBadge) {
+          settingsBadge.textContent = isHost ? '👑 Bạn là Host (Có quyền đổi)' : '🔒 Chỉ Host mới chỉnh được';
+          settingsBadge.style.color = isHost ? '#059669' : '#64748b';
+        }
+
+        // Update Role Cards: Show/Hide based on active roles
         document.querySelectorAll('.role-card').forEach((card) => {
           const role = card.getAttribute('data-role');
+          const isActive = activeRoles.includes(role);
+          card.style.display = isActive ? 'flex' : 'none';
+          if (!isActive) return;
+
           const ownerEl = document.getElementById(`owner-${role}`);
           const occupant = rolePlayers[role];
           const isMe = (this.myRole === role);
@@ -2286,8 +2539,9 @@
           }
         });
 
+        const isPacManRole = this.myRole === 'pacman' || this.myRole === 'pacman2';
         document.getElementById('selected-role-hint').textContent =
-          `Đang chọn: ${this.myRole.toUpperCase()} (${this.myRole === 'pacman' ? 'Người Thu Thập' : 'Bóng Ma Săn Đuổi'})`;
+          `Đang chọn: ${this.myRole.toUpperCase()} (${isPacManRole ? 'Người Thu Thập' : 'Bóng Ma Săn Đuổi'}) [Chế độ ${mode}]`;
 
         // Update Room Box
         const codeEl = document.getElementById('lobby-current-code');
@@ -2296,17 +2550,17 @@
         const statusBadge = document.getElementById('room-status-badge');
 
         if (this.roomCode) {
-          codeEl.textContent = `#${this.roomCode}`;
+          codeEl.textContent = `#${this.roomCode} (${mode})`;
           copyBtn.style.display = 'inline-block';
           statusBadge.textContent = this.isHost ? `👑 Chủ phòng #${this.roomCode}` : `✅ Đã vào phòng #${this.roomCode}`;
         } else {
-          codeEl.textContent = 'CHẾ ĐỘ ĐƠN / CHƯA TẠO MÃ';
+          codeEl.textContent = `CHẾ ĐỘ ĐƠN / CHƯA TẠO MÃ (${mode})`;
           copyBtn.style.display = 'none';
           statusBadge.textContent = 'Chế độ: Chơi ngay hoặc Tạo phòng';
         }
 
         slotsList.innerHTML = '';
-        ALL_ROLES.forEach((role) => {
+        activeRoles.forEach((role) => {
           const occupant = rolePlayers[role];
           const chip = document.createElement('div');
           chip.className = 'slot-chip' + (occupant ? ' human' : '');
@@ -2318,7 +2572,9 @@
         // Update Active Rooms from local catalog
         const localSummaries = Object.values(this.roomsCatalog).map((r) => ({
           code: r.code,
-          playerCount: Object.keys(r.players || {}).length
+          playerCount: Object.keys(r.players || {}).length,
+          maxPlayers: getActiveRoles(r.settings?.mode).length,
+          settings: r.settings
         }));
         if (localSummaries.length > 0) {
           this.renderActiveRoomsPills(localSummaries);
@@ -2328,12 +2584,12 @@
         document.getElementById('hud-room-code').textContent = this.roomCode ? `#${this.roomCode}` : 'SOLO';
         document.getElementById('hud-role-label').textContent = this.myRole.toUpperCase();
         document.getElementById('skill-bar-title').textContent =
-          this.myRole === 'pacman' ? '⚡ Lướt nhanh (Space)' : `⚡ Tăng tốc ${this.myRole} (Space)`;
+          isPacManRole ? '⚡ Lướt nhanh (Space)' : `⚡ Tăng tốc ${this.myRole} (Space)`;
 
         const hudPlayersEl = document.getElementById('room-hud-players');
         hudPlayersEl.innerHTML = '';
         let humanCount = 0;
-        ALL_ROLES.forEach((role) => {
+        activeRoles.forEach((role) => {
           const p = rolePlayers[role];
           if (p) humanCount++;
           const row = document.createElement('div');
@@ -2347,7 +2603,7 @@
           `;
           hudPlayersEl.appendChild(row);
         });
-        document.getElementById('room-hud-count').textContent = `${humanCount}/5 Người`;
+        document.getElementById('room-hud-count').textContent = `${humanCount}/${activeRoles.length} Người`;
       }
     }
 
@@ -2367,11 +2623,13 @@
     // Helper: Get the entity currently controlled by the local player
     function getMyControlledEntity() {
       if (mp.myRole === 'pacman') return pacman;
+      if (mp.myRole === 'pacman2') return pacman2;
       return ghosts.find((g) => g.name === mp.myRole) || pacman;
     }
 
     function getMyControlledMeshRoot() {
       if (mp.myRole === 'pacman') return pacModel.root;
+      if (mp.myRole === 'pacman2') return pacModel2.root;
       const g = ghosts.find((gh) => gh.name === mp.myRole);
       return g ? g.mesh.root : pacModel.root;
     }
@@ -2463,30 +2721,38 @@
       if (g.state === 'EATEN') return { x: 10, z: 8 };
       if (g.inHouse) return { x: 10, z: 8 };
 
+      const mode = mp.getRoomMode();
+      let targetPac = pacman;
+      if (mode === '2v3') {
+        const d1 = Math.hypot(g.gx - pacman.gx, g.gz - pacman.gz);
+        const d2 = Math.hypot(g.gx - pacman2.gx, g.gz - pacman2.gz);
+        targetPac = d1 <= d2 ? pacman : pacman2;
+      }
+
       const cycle = state.elapsedTime % 27;
       if (cycle < 5 && g.state === 'NORMAL') {
         return { x: g.scatterX, z: g.scatterZ };
       }
 
       if (g.name === 'Blinky') {
-        return { x: Math.round(pacman.gx), z: Math.round(pacman.gz) };
+        return { x: Math.round(targetPac.gx), z: Math.round(targetPac.gz) };
       } else if (g.name === 'Pinky') {
         return {
-          x: Math.round(pacman.gx) + pacman.dir.x * 4,
-          z: Math.round(pacman.gz) + pacman.dir.z * 4
+          x: Math.round(targetPac.gx) + targetPac.dir.x * 4,
+          z: Math.round(targetPac.gz) + targetPac.dir.z * 4
         };
       } else if (g.name === 'Inky') {
         const blinky = ghosts[0];
-        const pivotX = Math.round(pacman.gx) + pacman.dir.x * 2;
-        const pivotZ = Math.round(pacman.gz) + pacman.dir.z * 2;
+        const pivotX = Math.round(targetPac.gx) + targetPac.dir.x * 2;
+        const pivotZ = Math.round(targetPac.gz) + targetPac.dir.z * 2;
         return {
           x: pivotX + (pivotX - Math.round(blinky.gx)),
           z: pivotZ + (pivotZ - Math.round(blinky.gz))
         };
       } else {
-        const dist = Math.hypot(g.gx - pacman.gx, g.gz - pacman.gz);
+        const dist = Math.hypot(g.gx - targetPac.gx, g.gz - targetPac.gz);
         if (dist > 6) {
-          return { x: Math.round(pacman.gx), z: Math.round(pacman.gz) };
+          return { x: Math.round(targetPac.gx), z: Math.round(targetPac.gz) };
         }
         return { x: g.scatterX, z: g.scatterZ };
       }
@@ -2552,7 +2818,9 @@
       if (g.state === 'FRIGHTENED' && !g.inHouse && !targetOverride) {
         let maxScore = -Infinity;
         candidates.forEach((c) => {
-          const dist = Math.hypot(c.nx - pacman.gx, c.nz - pacman.gz) + Math.random() * 2.0;
+          const d1 = Math.hypot(c.nx - pacman.gx, c.nz - pacman.gz);
+          const d2 = (mp.getRoomMode() === '2v3') ? Math.hypot(c.nx - pacman2.gx, c.nz - pacman2.gz) : Infinity;
+          const dist = Math.min(d1, d2) + Math.random() * 2.0;
           if (dist > maxScore) {
             maxScore = dist;
             chosen = c;
@@ -2576,6 +2844,9 @@
     }
 
     function resetPositions() {
+      const mode = mp.getRoomMode();
+      const activeRoles = getActiveRoles(mode);
+
       pacman.gx = 10;
       pacman.gz = 16;
       pacman.targetGx = 10;
@@ -2592,7 +2863,34 @@
       pacModel.bodyGroup.rotation.y = 0;
       pacGlowLight.position.set(pPos.x, 2.2, pPos.z);
 
+      if (mode === '2v3') {
+        pacman2.gx = 11;
+        pacman2.gz = 16;
+        pacman2.targetGx = 11;
+        pacman2.targetGz = 16;
+        pacman2.hasTarget = false;
+        pacman2.dir = DIRS.NONE;
+        pacman2.targetDir = DIRS.NONE;
+        pacman2.nextDir = DIRS.NONE;
+        pacman2.dashTimer = 0;
+        pacman2.dashCooldown = 0;
+
+        const p2Pos = gridToWorld(pacman2.gx, pacman2.gz);
+        pacModel2.root.position.set(p2Pos.x, 0, p2Pos.z);
+        pacModel2.bodyGroup.rotation.y = 0;
+        pacModel2.root.visible = true;
+      } else {
+        pacModel2.root.visible = false;
+      }
+
       ghosts.forEach((g, idx) => {
+        const isActive = activeRoles.includes(g.name);
+        if (!isActive) {
+          g.mesh.root.visible = false;
+          return;
+        }
+        g.mesh.root.visible = true;
+
         const spec = GHOST_SPECS[idx];
         const isHumanGhost = (mp.myRole === g.name) || mp.isRoleControlledByRemoteHuman(g.name);
         // Human-controlled ghosts spawn right outside the ghost house door (10, 8) ready for immediate action!
@@ -2664,8 +2962,11 @@
         entity.gx = entity.targetGx;
         entity.gz = entity.targetGz;
       } else if (dist > 0.001) {
-        // Smooth exponential / lerp factor based on delta time
-        const factor = Math.min(1.0, dt * 22);
+        // Dynamic lerp speed based on configured network sync interval (100ms - 300ms)
+        const syncInterval = mp.getSyncInterval() || 150;
+        const intervalSec = syncInterval / 1000;
+        const lerpSpeed = Math.max(8, Math.min(24, 2.2 / intervalSec));
+        const factor = Math.min(1.0, dt * lerpSpeed);
         entity.gx += dx * factor;
         entity.gz += dz * factor;
       } else {
@@ -2683,40 +2984,40 @@
     // =========================================================================
     // 10. PAC-MAN UPDATER (Human Controlled or AI Bot if Player chose Ghost!)
     // =========================================================================
-    function updatePacMan(dt) {
-      if (pacman.dashCooldown > 0) {
-        pacman.dashCooldown = Math.max(0, pacman.dashCooldown - dt);
+    function updateSinglePacMan(pEntity, pModel, dt, roleName) {
+      if (pEntity.dashCooldown > 0) {
+        pEntity.dashCooldown = Math.max(0, pEntity.dashCooldown - dt);
       }
-      if (pacman.dashTimer > 0) {
-        pacman.dashTimer = Math.max(0, pacman.dashTimer - dt);
+      if (pEntity.dashTimer > 0) {
+        pEntity.dashTimer = Math.max(0, pEntity.dashTimer - dt);
         if (Math.random() < 0.5) {
-          const wPos = gridToWorld(pacman.gx, pacman.gz);
-          spawnParticles(wPos.x, 0.4, wPos.z, 0xfef08a, 1, 0.5);
+          const wPos = gridToWorld(pEntity.gx, pEntity.gz);
+          spawnParticles(wPos.x, 0.4, wPos.z, roleName === 'pacman2' ? 0x00e5ff : 0xfef08a, 1, 0.5);
         }
       }
 
-      const speedMult = pacman.dashTimer > 0 ? 1.8 : 1.0;
-      const currentSpeed = (pacman.baseSpeed + (state.level - 1) * 0.2) * speedMult;
+      const speedMult = pEntity.dashTimer > 0 ? 1.8 : 1.0;
+      const currentSpeed = (pEntity.baseSpeed + (state.level - 1) * 0.2) * speedMult;
 
-      const cx = Math.round(pacman.gx);
-      const cz = Math.round(pacman.gz);
+      const cx = Math.round(pEntity.gx);
+      const cz = Math.round(pEntity.gz);
 
-      const isRemotePacMan = mp.isRoleControlledByRemoteHuman('pacman');
-      const isBotPacMan = (mp.myRole !== 'pacman') && !isRemotePacMan;
-      const isLocalPacManAuthority = (mp.myRole === 'pacman') || (isBotPacMan && (!mp.roomCode || mp.isHost));
+      const isRemotePac = mp.isRoleControlledByRemoteHuman(roleName);
+      const isBotPac = (mp.myRole !== roleName) && !isRemotePac;
+      const isLocalPacAuthority = (mp.myRole === roleName) || (isBotPac && (!mp.roomCode || mp.isHost));
 
-      if (isLocalPacManAuthority) {
-        // If local player chose a Ghost and no remote human is playing Pac-Man, smart AI drives Pac-Man! (Only host in MP)
-        if (isBotPacMan) {
-          const distToCenter = Math.hypot(pacman.gx - cx, pacman.gz - cz);
-          if (pacman.dir === DIRS.NONE || distToCenter < 0.18) {
+      if (isLocalPacAuthority) {
+        // If local player chose a Ghost and no remote human is playing this Pac-Man, smart AI drives it! (Only host in MP)
+        if (isBotPac) {
+          const distToCenter = Math.hypot(pEntity.gx - cx, pEntity.gz - cz);
+          if (pEntity.dir === DIRS.NONE || distToCenter < 0.18) {
             const validDirs = CARDINAL_DIRS.filter((d) => {
-              if (pacman.dir !== DIRS.NONE && d.x === -pacman.dir.x && d.z === -pacman.dir.z) return false;
+              if (pEntity.dir !== DIRS.NONE && d.x === -pEntity.dir.x && d.z === -pEntity.dir.z) return false;
               return isTileWalkableForPacMan(cx + d.x, cz + d.z);
             });
             const pool = validDirs.length > 0 ? validDirs : CARDINAL_DIRS.filter((d) => isTileWalkableForPacMan(cx + d.x, cz + d.z));
             if (pool.length > 0) {
-              // Pick direction that maximizes distance from nearest dangerous ghost + seeks pellets
+              const activeRoles = getActiveRoles(mp.getRoomMode());
               let bestDir = pool[0];
               let bestScore = -Infinity;
               pool.forEach((d) => {
@@ -2724,6 +3025,7 @@
                 const nz = cz + d.z;
                 let minGhostDist = Infinity;
                 ghosts.forEach((g) => {
+                  if (!activeRoles.includes(g.name)) return;
                   const gd = Math.hypot(nx - g.gx, nz - g.gz);
                   if (gd < minGhostDist) minGhostDist = gd;
                 });
@@ -2734,85 +3036,87 @@
                   bestDir = d;
                 }
               });
-              pacman.nextDir = bestDir;
+              pEntity.nextDir = bestDir;
             }
           }
         }
 
         // 1. Handle Buffered Direction Input
-        if (pacman.nextDir !== DIRS.NONE) {
+        if (pEntity.nextDir !== DIRS.NONE) {
           const isReverse = (
-            pacman.dir !== DIRS.NONE &&
-            pacman.dir.x === -pacman.nextDir.x &&
-            pacman.dir.z === -pacman.nextDir.z
+            pEntity.dir !== DIRS.NONE &&
+            pEntity.dir.x === -pEntity.nextDir.x &&
+            pEntity.dir.z === -pEntity.nextDir.z
           );
-          const canMoveNext = isTileWalkableForPacMan(cx + pacman.nextDir.x, cz + pacman.nextDir.z);
+          const canMoveNext = isTileWalkableForPacMan(cx + pEntity.nextDir.x, cz + pEntity.nextDir.z);
 
           if (isReverse && canMoveNext) {
-            pacman.dir = pacman.nextDir;
-            pacman.nextDir = DIRS.NONE;
+            pEntity.dir = pEntity.nextDir;
+            pEntity.nextDir = DIRS.NONE;
           } else if (canMoveNext) {
-            const distToCenter = Math.hypot(pacman.gx - cx, pacman.gz - cz);
+            const distToCenter = Math.hypot(pEntity.gx - cx, pEntity.gz - cz);
             if (distToCenter < 0.38) {
-              if (pacman.nextDir.x !== 0) pacman.gz = cz;
-              if (pacman.nextDir.z !== 0) pacman.gx = cx;
-              pacman.dir = pacman.nextDir;
-              pacman.nextDir = DIRS.NONE;
+              if (pEntity.nextDir.x !== 0) pEntity.gz = cz;
+              if (pEntity.nextDir.z !== 0) pEntity.gx = cx;
+              pEntity.dir = pEntity.nextDir;
+              pEntity.nextDir = DIRS.NONE;
             }
           }
         }
 
         // 2. Move along active direction with strict tile-center wall clamping
-        if (pacman.dir !== DIRS.NONE) {
+        if (pEntity.dir !== DIRS.NONE) {
           const step = currentSpeed * dt;
-          let nextX = pacman.gx + pacman.dir.x * step;
-          let nextZ = pacman.gz + pacman.dir.z * step;
+          let nextX = pEntity.gx + pEntity.dir.x * step;
+          let nextZ = pEntity.gz + pEntity.dir.z * step;
 
-          if (pacman.dir.x !== 0) nextZ = cz;
-          else if (pacman.dir.z !== 0) nextX = cx;
+          if (pEntity.dir.x !== 0) nextZ = cz;
+          else if (pEntity.dir.z !== 0) nextX = cx;
 
           if (cz === 10 && (nextX < 0 || nextX >= GRID_SIZE - 1)) {
             if (nextX < -0.45) nextX += GRID_SIZE;
             if (nextX > GRID_SIZE - 0.55) nextX -= GRID_SIZE;
-            pacman.gx = nextX;
-            pacman.gz = 10;
+            pEntity.gx = nextX;
+            pEntity.gz = 10;
           } else {
-            const nextTileWalkable = isTileWalkableForPacMan(cx + pacman.dir.x, cz + pacman.dir.z);
+            const nextTileWalkable = isTileWalkableForPacMan(cx + pEntity.dir.x, cz + pEntity.dir.z);
             if (!nextTileWalkable) {
-              if (pacman.dir.x > 0 && nextX > cx) nextX = cx;
-              if (pacman.dir.x < 0 && nextX < cx) nextX = cx;
-              if (pacman.dir.z > 0 && nextZ > cz) nextZ = cz;
-              if (pacman.dir.z < 0 && nextZ < cz) nextZ = cz;
+              if (pEntity.dir.x > 0 && nextX > cx) nextX = cx;
+              if (pEntity.dir.x < 0 && nextX < cx) nextX = cx;
+              if (pEntity.dir.z > 0 && nextZ > cz) nextZ = cz;
+              if (pEntity.dir.z < 0 && nextZ < cz) nextZ = cz;
             }
-            pacman.gx = nextX;
-            pacman.gz = nextZ;
+            pEntity.gx = nextX;
+            pEntity.gz = nextZ;
           }
         }
       } else {
         // Remote human Pac-Man OR Guest client bot Pac-Man: interpolate position smoothly!
-        interpolateEntity(pacman, dt);
+        interpolateEntity(pEntity, dt);
       }
 
-      if (pacman.dir !== DIRS.NONE) {
-        pacman.mouthPhase += dt * 18 * speedMult;
-        const chompAngle = (Math.sin(pacman.mouthPhase) * 0.5 + 0.5) * 0.62;
-        pacModel.upperJaw.rotation.x = -chompAngle;
-        pacModel.lowerJaw.rotation.x = chompAngle;
-        pacModel.bodyGroup.position.y = 0.85 + Math.abs(Math.sin(pacman.mouthPhase * 0.5)) * 0.15;
-        pacModel.bodyGroup.rotation.y = pacman.dir.angle;
+      if (pEntity.dir !== DIRS.NONE) {
+        pEntity.mouthPhase += dt * 18 * speedMult;
+        const chompAngle = (Math.sin(pEntity.mouthPhase) * 0.5 + 0.5) * 0.62;
+        pModel.upperJaw.rotation.x = -chompAngle;
+        pModel.lowerJaw.rotation.x = chompAngle;
+        pModel.bodyGroup.position.y = 0.85 + Math.abs(Math.sin(pEntity.mouthPhase * 0.5)) * 0.15;
+        pModel.bodyGroup.rotation.y = pEntity.dir.angle;
       } else {
-        pacModel.upperJaw.rotation.x = -0.15;
-        pacModel.lowerJaw.rotation.x = 0.15;
+        pModel.upperJaw.rotation.x = -0.15;
+        pModel.lowerJaw.rotation.x = 0.15;
       }
 
-      const wPos = gridToWorld(pacman.gx, pacman.gz);
-      pacModel.root.position.set(wPos.x, 0, wPos.z);
-      pacGlowLight.position.set(wPos.x, 2.2, wPos.z);
+      const wPos = gridToWorld(pEntity.gx, pEntity.gz);
+      pModel.root.position.set(wPos.x, 0, wPos.z);
+      if (roleName === 'pacman') {
+        pacGlowLight.position.set(wPos.x, 2.2, wPos.z);
+      }
 
       // 3. Check Pellet Collection (Only authoritative controller evaluates to avoid duplicate sync events)
-      if (isLocalPacManAuthority) {
-        const tileX = Math.round(pacman.gx);
-        const tileZ = Math.round(pacman.gz);
+      if (isLocalPacAuthority) {
+        const tileX = Math.round(pEntity.gx);
+        const tileZ = Math.round(pEntity.gz);
         if (tileZ >= 0 && tileZ < GRID_SIZE && tileX >= 0 && tileX < GRID_SIZE) {
           const pObj = activePellets[tileZ] && activePellets[tileZ][tileX];
           if (pObj && !pObj.eaten) {
@@ -2823,12 +3127,12 @@
             mp.broadcastWorldEvent({ event: 'PELLET_EATEN', gx: tileX, gz: tileZ });
 
             if (pObj.isPower) {
-              if (mp.myRole === 'pacman') state.score += 50;
+              if (mp.myRole === roleName) state.score += 50;
               activatePowerMode();
             } else {
-              if (mp.myRole === 'pacman') state.score += 10;
+              if (mp.myRole === roleName) state.score += 10;
               sfx.chomp();
-              spawnParticles(wPos.x, 0.4, wPos.z, 0xfacc15, 4, 0.5);
+              spawnParticles(wPos.x, 0.4, wPos.z, roleName === 'pacman2' ? 0x00e5ff : 0xfacc15, 4, 0.5);
             }
 
             if (!state.fruitSpawnedThisLevel && state.pelletsRemaining === 110) {
@@ -2854,21 +3158,32 @@
       }
 
       // 4. Check Bonus Fruit Collection
-      if (state.fruitActive) {
-        state.fruitTimer -= dt;
-        fruitMesh.rotation.y += dt * 2.5;
-        fruitMesh.position.y = 0.25 + Math.sin(state.elapsedTime * 5) * 0.15;
-        if (isLocalPacManAuthority && Math.hypot(pacman.gx - 10, pacman.gz - 12) < 0.7) {
+      if (state.fruitActive && isLocalPacAuthority) {
+        if (Math.hypot(pEntity.gx - 10, pEntity.gz - 12) < 0.7) {
           state.fruitActive = false;
           fruitMesh.visible = false;
           const fruitBonus = 300 * state.level;
-          if (mp.myRole === 'pacman') state.score += fruitBonus;
+          if (mp.myRole === roleName) state.score += fruitBonus;
           sfx.eatFruit();
           spawnParticles(fruitMesh.position.x, 0.6, fruitMesh.position.z, 0xef4444, 14, 1.2);
           spawnFloatingScore(`+${fruitBonus} CHERRY!`, fruitMesh.position, '#ef4444');
           updateHUD();
           mp.broadcastWorldEvent({ event: 'FRUIT_EATEN' });
-        } else if (state.fruitTimer <= 0) {
+        }
+      }
+    }
+
+    function updatePacMan(dt) {
+      updateSinglePacMan(pacman, pacModel, dt, 'pacman');
+      if (mp.getRoomMode() === '2v3') {
+        updateSinglePacMan(pacman2, pacModel2, dt, 'pacman2');
+      }
+
+      if (state.fruitActive) {
+        state.fruitTimer -= dt;
+        fruitMesh.rotation.y += dt * 2.5;
+        fruitMesh.position.y = 0.25 + Math.sin(state.elapsedTime * 5) * 0.15;
+        if (state.fruitTimer <= 0) {
           state.fruitActive = false;
           fruitMesh.visible = false;
         }
@@ -2965,8 +3280,19 @@
         }
       }
 
+      const activeRoles = getActiveRoles(mp.getRoomMode());
+      const activePacmans = [{ entity: pacman, role: 'pacman', model: pacModel }];
+      if (mp.getRoomMode() === '2v3') {
+        activePacmans.push({ entity: pacman2, role: 'pacman2', model: pacModel2 });
+      }
+
       for (let idx = 0; idx < ghosts.length; idx++) {
         const g = ghosts[idx];
+        if (!activeRoles.includes(g.name)) {
+          g.mesh.root.visible = false;
+          continue;
+        }
+
         const isLocalHumanGhost = (mp.myRole === g.name);
         const isRemoteHumanGhost = mp.isRoleControlledByRemoteHuman(g.name);
         const isBotGhost = !isLocalHumanGhost && !isRemoteHumanGhost;
@@ -3032,44 +3358,51 @@
         g.mesh.skirtGroup.rotation.y += dt * 4.5;
         g.mesh.bodyGroup.rotation.y = g.dir.angle;
 
-        // Collision check with Pac-Man (only evaluated by authority to avoid duplicate events)
-        const isCollisionAuthority = isLocalHumanGhost || (mp.myRole === 'pacman') || (mp.isHost && isBotGhost);
+        // Collision check with Pac-Man
+        // Single Source of Truth / Host Authority model to prevent double decrement and race condition:
+        const isCollisionAuthority = !mp.roomCode || mp.isHost;
         if (isCollisionAuthority) {
-          const distToPac = Math.hypot(g.gx - pacman.gx, g.gz - pacman.gz);
-          if (distToPac < 0.72) {
-            if (g.state === 'FRIGHTENED') {
-              g.state = 'EATEN';
-              g.tileX = Math.round(g.gx);
-              g.tileZ = Math.round(g.gz);
-              g.nextTileX = g.tileX;
-              g.nextTileZ = g.tileZ;
-              g.progress = 0;
-              chooseNextGhostStep(g);
+          for (let pIdx = 0; pIdx < activePacmans.length; pIdx++) {
+            const pacObj = activePacmans[pIdx];
+            const distToPac = Math.hypot(g.gx - pacObj.entity.gx, g.gz - pacObj.entity.gz);
+            if (distToPac < 0.72) {
+              if (g.state === 'FRIGHTENED') {
+                g.state = 'EATEN';
+                g.tileX = Math.round(g.gx);
+                g.tileZ = Math.round(g.gz);
+                g.nextTileX = g.tileX;
+                g.nextTileZ = g.tileZ;
+                g.progress = 0;
+                chooseNextGhostStep(g);
 
-              state.ghostCombo++;
-              const pts = 200 * Math.pow(2, state.ghostCombo - 1);
-              if (mp.myRole === 'pacman') state.score += pts;
-              if (state.score > state.highScore) {
-                state.highScore = state.score;
-                localStorage.setItem('pacman3d_worawork_high', String(state.highScore));
-              }
-              sfx.eatGhost();
-              mp.broadcastWorldEvent({ event: 'GHOST_EATEN', ghostName: g.name });
-              spawnParticles(wPos.x, 0.8, wPos.z, 0x38bdf8, 16, 1.3);
-              spawnFloatingScore(`+${pts}!`, g.mesh.root.position, '#60a5fa');
-              updateHUD();
-            } else if (g.state === 'NORMAL') {
-              if (isLocalHumanGhost) {
-                state.score += 500;
+                state.ghostCombo++;
+                const pts = 200 * Math.pow(2, state.ghostCombo - 1);
+                if (mp.myRole === pacObj.role) state.score += pts;
                 if (state.score > state.highScore) {
                   state.highScore = state.score;
                   localStorage.setItem('pacman3d_worawork_high', String(state.highScore));
                 }
-                spawnFloatingScore('+500 BẮT ĐƯỢC PAC-MAN!', g.mesh.root.position, '#ef4444');
+                sfx.eatGhost();
+                mp.broadcastWorldEvent({
+                  event: 'GHOST_EATEN',
+                  ghostName: g.name,
+                  pacmanRole: pacObj.role,
+                  combo: state.ghostCombo
+                });
+                spawnParticles(wPos.x, 0.8, wPos.z, 0x38bdf8, 16, 1.3);
+                spawnFloatingScore(`+${pts}!`, g.mesh.root.position, '#60a5fa');
+                updateHUD();
+              } else if (g.state === 'NORMAL') {
+                const nextRemainingLives = state.lives - 1;
+                mp.broadcastWorldEvent({
+                  event: 'PACMAN_HIT',
+                  ghostName: g.name,
+                  pacmanRole: pacObj.role,
+                  remainingLives: nextRemainingLives
+                });
+                handlePacManHit(false, pacObj.role, nextRemainingLives);
+                break;
               }
-              mp.broadcastWorldEvent({ event: 'PACMAN_HIT', ghostName: g.name });
-              handlePacManHit(false);
-              break;
             }
           }
         }
@@ -3142,7 +3475,16 @@
       minimapCtx.arc((pacman.gx + 0.5) * cellPx, (pacman.gz + 0.5) * cellPx, 3.2, 0, Math.PI * 2);
       minimapCtx.fill();
 
+      if (mp.getRoomMode() === '2v3') {
+        minimapCtx.fillStyle = '#00e5ff';
+        minimapCtx.beginPath();
+        minimapCtx.arc((pacman2.gx + 0.5) * cellPx, (pacman2.gz + 0.5) * cellPx, 3.2, 0, Math.PI * 2);
+        minimapCtx.fill();
+      }
+
+      const activeRoles = getActiveRoles(mp.getRoomMode());
       ghosts.forEach((g) => {
+        if (!activeRoles.includes(g.name)) return;
         minimapCtx.fillStyle = g.state === 'FRIGHTENED' ? '#3b82f6' : g.cssColor;
         minimapCtx.beginPath();
         minimapCtx.arc((g.gx + 0.5) * cellPx, (g.gz + 0.5) * cellPx, 2.8, 0, Math.PI * 2);
@@ -3201,20 +3543,28 @@
       }
     }
 
-    function handlePacManHit(fromNetwork = false) {
+    function handlePacManHit(fromNetwork = false, pacmanRole = 'pacman', remainingLives = null) {
       if (state.status !== 'PLAYING') return;
       sfx.die();
-      const wPos = gridToWorld(pacman.gx, pacman.gz);
-      spawnParticles(wPos.x, 0.7, wPos.z, 0xfacc15, 20, 1.5);
-      state.lives--;
+
+      const targetPac = (pacmanRole === 'pacman2') ? pacman2 : pacman;
+      const wPos = gridToWorld(targetPac.gx, targetPac.gz);
+      spawnParticles(wPos.x, 0.7, wPos.z, pacmanRole === 'pacman2' ? 0x00e5ff : 0xfacc15, 20, 1.5);
+
+      if (typeof remainingLives === 'number') {
+        state.lives = remainingLives;
+      } else {
+        state.lives--;
+      }
       updateHUD();
 
       if (state.lives <= 0) {
         state.status = 'GAMEOVER';
+        const isPacmanTeam = (mp.myRole === 'pacman' || mp.myRole === 'pacman2');
         showModal(
           'KẾT THÚC HIỆP ĐẤU',
-          mp.myRole === 'pacman' ? `Pac-Man đạt ${state.score.toLocaleString('vi-VN')} điểm!` : `Đội Bóng Ma đã chiến thắng!`,
-          'Bạn có thể đổi vai trò (Pac-Man hoặc Bóng Ma), tạo phòng mới hoặc nhấn nút bên dưới để tái đấu ngay!',
+          isPacmanTeam ? `Đội Pac-Man đạt ${state.score.toLocaleString('vi-VN')} điểm!` : `Đội Bóng Ma đã chiến thắng!`,
+          'Bạn có thể đổi vai trò (Pac-Man hoặc Bóng Ma), đổi chế độ trận đấu hoặc nhấn nút bên dưới để tái đấu ngay!',
           'Chơi Lại Hiệp Mới'
         );
       } else {
@@ -3411,13 +3761,28 @@
       }
     });
 
+    document.getElementById('select-game-mode').addEventListener('change', (e) => {
+      sfx.init();
+      mp.updateSettings({ mode: e.target.value });
+    });
+
+    document.getElementById('select-pacman-lives').addEventListener('change', (e) => {
+      sfx.init();
+      mp.updateSettings({ pacmanLives: Number(e.target.value) });
+    });
+
+    document.getElementById('select-sync-interval').addEventListener('change', (e) => {
+      sfx.init();
+      mp.updateSettings({ syncInterval: Number(e.target.value) });
+    });
+
     function startMatchFromLobby(broadcast = true) {
       sfx.init();
       mp.syncNameFromInput();
       if (state.status === 'MENU' || state.status === 'GAMEOVER') {
         state.score = 0;
         state.level = 1;
-        state.lives = 3;
+        state.lives = mp.getPacmanLives();
         state.fruitSpawnedThisLevel = false;
         populatePellets();
         resetPositions();
